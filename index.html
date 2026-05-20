@@ -465,6 +465,21 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   </div>
 </div>
 
+<!-- ══ ACCÈS STAGIAIRE ══ -->
+<div class="scr flex-scr" id="scr-access">
+  <div class="card" style="max-width:440px;width:100%;text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
+    <div style="font-size:1.5rem;font-weight:800;margin-bottom:8px;">Accès sécurisé</div>
+    <div style="font-size:.88rem;color:var(--muted);margin-bottom:24px;line-height:1.6;">Entrez le code d'accès fourni par votre formateur pour démarrer votre parcours.</div>
+    <div class="field" style="margin-bottom:16px;text-align:left;">
+      <label>Code d'accès</label>
+      <input type="password" id="access-inp" class="ef-inp" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkAccessCode()">
+    </div>
+    <div id="access-err" style="display:none;color:#f77a7a;font-size:.82rem;margin-bottom:12px;">Code incorrect. Réessayez.</div>
+    <button class="btn btn-p btn-full" onclick="checkAccessCode()">Accéder à mon parcours →</button>
+  </div>
+</div>
+
 <!-- ══ WELCOME ══ -->
 <div class="scr flex-scr" id="scr-welcome">
   <div class="wlc-badge">✓ Invitation validée</div>
@@ -790,7 +805,8 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="exportAllPDF()">📄 Rapport PDF</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="setFormateurEmail()">✉️ Mon email</button>
-        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="changeFormateurPin()">🔑 Changer le code</button>
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="setAccessCode()">🔐 Code stagiaires</button>
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="changeFormateurPin()">🔑 Code formateur</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="exitFormateur()">✕ Quitter</button>
       </div>
     </div>
@@ -1089,9 +1105,23 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   if(p.has('demo')){document.getElementById('dev-bar').style.display='flex';return;}
   // Mode formateur direct
   if(p.has('formateur')){openFormateurLogin();return;}
-  // Modale reprise si données existantes
+  // Vérification code d'accès
+  const authenticated=sessionStorage.getItem('stagiaire_auth')==='1';
+  if(!authenticated){
+    // Si données existantes sur cet appareil → reprendre sans code
+    if(saved){
+      sessionStorage.setItem('stagiaire_auth','1');
+      try{showResumeModal(JSON.parse(saved));}catch(e){}
+      return;
+    }
+    // Sinon → écran de code d'accès
+    go('scr-access');
+    setTimeout(()=>document.getElementById('access-inp')?.focus(),200);
+    return;
+  }
+  // Déjà authentifié → modale reprise si données
   if(saved){
-    try{const profil=JSON.parse(saved);showResumeModal(profil);}catch(e){}
+    try{showResumeModal(JSON.parse(saved));}catch(e){}
   }
 })();
 
@@ -2337,9 +2367,40 @@ function exportCSV(){
 //  MODE FORMATEUR
 // ══════════════════════════════════════════
 const FORMATEUR_PIN_DEFAULT='POINFOR2026';
+const ACCESS_CODE_DEFAULT='DAQ2026';
 const API_URL='./api.php';
 let _fmtPin='';
 function getFormateurPin(){return localStorage.getItem('formateur_pin')||FORMATEUR_PIN_DEFAULT;}
+function getAccessCode(){return localStorage.getItem('stagiaire_code')||ACCESS_CODE_DEFAULT;}
+
+function checkAccessCode(){
+  const val=document.getElementById('access-inp').value.trim();
+  const err=document.getElementById('access-err');
+  if(val===getAccessCode()){
+    sessionStorage.setItem('stagiaire_auth','1');
+    err.style.display='none';
+    proceedAfterAuth();
+  }else{
+    err.style.display='block';
+    document.getElementById('access-inp').value='';
+    document.getElementById('access-inp').focus();
+  }
+}
+
+function proceedAfterAuth(){
+  const saved=localStorage.getItem('parcours_profil');
+  if(saved){try{showResumeModal(JSON.parse(saved));}catch(e){go('scr-welcome');setpg(5);}}
+  else{go('scr-welcome');setpg(5);}
+}
+
+function setAccessCode(){
+  const cur=localStorage.getItem('stagiaire_code')||ACCESS_CODE_DEFAULT;
+  const n=prompt('Code d\'accès stagiaire actuel : '+cur+'\n\nNouveau code (min. 4 caractères) :');
+  if(!n)return;
+  if(n.trim().length<4){toast('Code trop court (min. 4 caractères)','err');return;}
+  localStorage.setItem('stagiaire_code',n.trim());
+  toast('Code stagiaire mis à jour : '+n.trim(),'ok');
+}
 function openFormateurLogin(){
   const pinSaved=localStorage.getItem('formateur_pin');
   const box=document.getElementById('fmt-modal-inner');
