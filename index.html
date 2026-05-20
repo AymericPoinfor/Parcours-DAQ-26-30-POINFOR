@@ -1105,21 +1105,14 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   if(p.has('demo')){document.getElementById('dev-bar').style.display='flex';return;}
   // Mode formateur direct
   if(p.has('formateur')){openFormateurLogin();return;}
-  // Vérification code d'accès
+  // Vérification code d'accès — obligatoire à chaque nouvelle session navigateur
   const authenticated=sessionStorage.getItem('stagiaire_auth')==='1';
   if(!authenticated){
-    // Si données existantes sur cet appareil → reprendre sans code
-    if(saved){
-      sessionStorage.setItem('stagiaire_auth','1');
-      try{showResumeModal(JSON.parse(saved));}catch(e){}
-      return;
-    }
-    // Sinon → écran de code d'accès
     go('scr-access');
     setTimeout(()=>document.getElementById('access-inp')?.focus(),200);
     return;
   }
-  // Déjà authentifié → modale reprise si données
+  // Déjà authentifié cette session → modale reprise si données
   if(saved){
     try{showResumeModal(JSON.parse(saved));}catch(e){}
   }
