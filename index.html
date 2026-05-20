@@ -467,15 +467,25 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 
 <!-- ══ ACCÈS STAGIAIRE ══ -->
 <div class="scr flex-scr" id="scr-access">
-  <div class="card" style="max-width:440px;width:100%;text-align:center;">
+  <div class="card" style="max-width:460px;width:100%;text-align:center;">
     <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
-    <div style="font-size:1.5rem;font-weight:800;margin-bottom:8px;">Accès sécurisé</div>
-    <div style="font-size:.88rem;color:var(--muted);margin-bottom:24px;line-height:1.6;">Entrez le code d'accès fourni par votre formateur pour démarrer votre parcours.</div>
-    <div class="field" style="margin-bottom:16px;text-align:left;">
-      <label>Code d'accès</label>
-      <input type="password" id="access-inp" class="ef-inp" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkAccessCode()">
+    <div style="font-size:1.5rem;font-weight:800;margin-bottom:6px;">Accès sécurisé</div>
+    <div style="font-size:.88rem;color:var(--muted);margin-bottom:22px;line-height:1.6;">Entrez vos informations pour accéder à votre parcours personnel.</div>
+    <div class="grid2" style="margin-bottom:12px;">
+      <div class="field" style="text-align:left;">
+        <label>Prénom <span class="req">*</span></label>
+        <input type="text" id="access-prenom" class="ef-inp" placeholder="Votre prénom" autocomplete="given-name">
+      </div>
+      <div class="field" style="text-align:left;">
+        <label>Nom <span class="req">*</span></label>
+        <input type="text" id="access-nom" class="ef-inp" placeholder="Votre nom" autocomplete="family-name">
+      </div>
     </div>
-    <div id="access-err" style="display:none;color:#f77a7a;font-size:.82rem;margin-bottom:12px;">Code incorrect. Réessayez.</div>
+    <div class="field" style="margin-bottom:16px;text-align:left;">
+      <label>Code d'accès personnel <span class="req">*</span></label>
+      <input type="password" id="access-inp" class="ef-inp" placeholder="Code fourni par votre formateur" onkeydown="if(event.key==='Enter')checkAccessCode()">
+    </div>
+    <div id="access-err" style="display:none;color:#f77a7a;font-size:.82rem;margin-bottom:12px;line-height:1.5;">Identifiants incorrects.<br>Vérifiez votre prénom, nom et code.</div>
     <button class="btn btn-p btn-full" onclick="checkAccessCode()">Accéder à mon parcours →</button>
   </div>
 </div>
@@ -2416,12 +2426,31 @@ function saveStagiaireNamespace(){
   });
 }
 
+function normalize(s){return(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
+
 function checkAccessCode(){
-  const val=document.getElementById('access-inp').value.trim();
+  const code=document.getElementById('access-inp').value.trim();
+  const prenom=document.getElementById('access-prenom').value.trim();
+  const nom=document.getElementById('access-nom').value.trim();
   const err=document.getElementById('access-err');
+
+  if(!prenom||!nom||!code){
+    err.textContent='Tous les champs sont obligatoires.';
+    err.style.display='block';
+    return;
+  }
+
   const list=getStagiairesList();
-  const found=list.find(s=>s.code===val);
-  const globalOk=val===getAccessCode();
+  // Validation individuelle : code + prénom + nom doivent correspondre
+  const found=list.find(s=>
+    s.code===code &&
+    normalize(s.prenom)===normalize(prenom) &&
+    normalize(s.nom)===normalize(nom)
+  );
+
+  // Fallback code global (sans liste individuelle)
+  const globalOk=!list.length && code===getAccessCode();
+
   if(found||globalOk){
     sessionStorage.setItem('stagiaire_auth','1');
     err.style.display='none';
@@ -2429,11 +2458,11 @@ function checkAccessCode(){
       sessionStorage.setItem('stagiaire_code',found.code);
       sessionStorage.setItem('stagiaire_nom',found.prenom+' '+found.nom);
       loadStagiaireData(found.code);
-      // Afficher le nom dans la topbar
       document.getElementById('tb-title').textContent='Parcours de '+found.prenom;
     }
     proceedAfterAuth();
   }else{
+    err.textContent='Identifiants incorrects. Vérifiez votre prénom, nom et code.';
     err.style.display='block';
     document.getElementById('access-inp').value='';
     document.getElementById('access-inp').focus();
