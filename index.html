@@ -2559,6 +2559,9 @@ function clearAllCodes(){
 
 function sendInvitation(prenom,nom,code,email=''){
   const url=window.location.href.split('?')[0];
+  const logoSrc=document.getElementById('tb-logo-img')?.src||'';
+  const logoHtml=logoSrc?`<img src="${logoSrc}" alt="Poinfor" style="height:54px;display:block;margin:0 auto 14px;">`:
+    `<div style="font-size:26px;font-weight:800;color:#ffffff;letter-spacing:1px;">POINFOR</div>`;
   const html=`<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f0f2f8;font-family:'Segoe UI',Arial,sans-serif;">
@@ -2567,9 +2570,9 @@ function sendInvitation(prenom,nom,code,email=''){
 <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
   <!-- Header -->
   <tr><td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:36px 40px 28px;text-align:center;">
-    <div style="font-size:11px;letter-spacing:3px;color:rgba(255,255,255,0.5);text-transform:uppercase;margin-bottom:10px;">Parcours Pro</div>
-    <div style="font-size:26px;font-weight:800;color:#ffffff;letter-spacing:1px;">POINFOR</div>
-    <div style="width:48px;height:3px;background:linear-gradient(90deg,#f5c842,#e8a020);border-radius:2px;margin:14px auto 0;"></div>
+    ${logoHtml}
+    <div style="font-size:11px;letter-spacing:3px;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:0;">Parcours Pro</div>
+    <div style="width:48px;height:3px;background:linear-gradient(90deg,#f5c842,#e8a020);border-radius:2px;margin:12px auto 0;"></div>
   </td></tr>
   <!-- Greeting -->
   <tr><td style="padding:36px 40px 0;">
