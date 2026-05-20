@@ -1,0 +1,10 @@
+api.php
+canva_to_pdf.py
+plateforme-stagiaires.html
+plateforme-stagiaires-v2.html
+*.py
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db
+.claude/
