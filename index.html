@@ -823,7 +823,13 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div id="fmt-codes-empty" style="font-size:.82rem;color:var(--muted);text-align:center;padding:12px 0;">Aucun code créé — les stagiaires utilisent le code global.</div>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-s" style="font-size:.78rem;padding:6px 12px;" onclick="printCodes()">🖨️ Imprimer les codes</button>
+      <button class="btn btn-s" style="font-size:.78rem;padding:6px 12px;" onclick="showInvitationTemplate()">📋 Template d'invitation</button>
       <button class="btn btn-s" style="font-size:.78rem;padding:6px 12px;" onclick="clearAllCodes()">🗑 Effacer tous les codes</button>
+    </div>
+    <div id="invitation-template-box" style="display:none;margin-top:12px;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Template — remplacez [Prénom] et [CODE]</div>
+      <textarea id="invitation-template-txt" class="ef-inp" style="width:100%;height:180px;font-size:.78rem;line-height:1.6;font-family:monospace;resize:vertical;" readonly></textarea>
+      <button class="btn btn-s" style="margin-top:6px;font-size:.78rem;padding:6px 14px;" onclick="copyTemplate()">📋 Copier le template</button>
     </div>
   </div>
 
@@ -2480,6 +2486,7 @@ function renderCodesList(){
       `<div style="flex:1;font-size:.9rem;font-weight:700;">${s.prenom} ${s.nom}</div>`+
       `<div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--gold);letter-spacing:.1em;">${s.code}</div>`+
       `<div style="font-size:.72rem;color:${hasDone?'var(--ok)':'var(--muted)'};">${hasDone?'✓ En cours':'–'}</div>`+
+      `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;" onclick="sendInvitation('${s.prenom}','${s.nom}','${s.code}')">📧</button>`+
       `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;color:#f77a7a;" onclick="removeStagiaireCode('${s.code}')">✕</button>`;
     el.appendChild(row);
   });
@@ -2509,6 +2516,71 @@ function clearAllCodes(){
   localStorage.removeItem('stagiaires_list');
   renderCodesList();
   toast('Codes supprimés','ok');
+}
+
+function sendInvitation(prenom,nom,code){
+  const url=window.location.href.split('?')[0];
+  const subject=encodeURIComponent('Votre accès à la Plateforme Parcours Pro — POINFOR');
+  const body=encodeURIComponent(
+`Bonjour ${prenom},
+
+Dans le cadre de votre formation DAQ, vous êtes invité(e) à réaliser votre bilan d'orientation sur la plateforme Parcours Pro de POINFOR.
+
+🔗 Accès à la plateforme :
+${url}
+
+🔑 Votre code d'accès personnel :
+${code}
+
+Ce code est strictement personnel. Il vous permettra de reprendre votre parcours là où vous vous êtes arrêté(e), même après une interruption.
+
+La plateforme vous guidera à travers 5 étapes :
+1. Création de votre profil
+2. Test QIMI (centres d'intérêt)
+3. Test RIASEC (personnalité professionnelle)
+4. Sélection de vos métiers
+5. Plan d'action (recherche de stages)
+
+N'hésitez pas à me contacter si vous avez des questions.
+
+Bien cordialement,
+Votre formateur POINFOR`
+  );
+  window.location.href=`mailto:?subject=${subject}&body=${body}`;
+  toast('Ouverture du client mail…','ok');
+}
+
+function showInvitationTemplate(){
+  const url=window.location.href.split('?')[0];
+  const tmpl=
+`Bonjour [Prénom],
+
+Dans le cadre de votre formation DAQ, vous êtes invité(e) à réaliser votre bilan d'orientation sur la plateforme Parcours Pro de POINFOR.
+
+🔗 Accès : ${url}
+🔑 Votre code personnel : [CODE]
+
+Ce code est strictement personnel et vous permet de reprendre votre parcours à tout moment.
+
+La plateforme vous guidera à travers 5 étapes :
+1. Création de votre profil
+2. Test QIMI (centres d'intérêt)
+3. Test RIASEC (personnalité professionnelle)
+4. Sélection de vos métiers
+5. Plan d'action (recherche de stages)
+
+Bien cordialement,
+Votre formateur POINFOR`;
+  const box=document.getElementById('invitation-template-box');
+  box.style.display=box.style.display==='none'?'block':'none';
+  document.getElementById('invitation-template-txt').value=tmpl;
+}
+
+function copyTemplate(){
+  const ta=document.getElementById('invitation-template-txt');
+  ta.select();
+  document.execCommand('copy');
+  toast('Template copié !','ok');
 }
 
 function setAccessCode(){
