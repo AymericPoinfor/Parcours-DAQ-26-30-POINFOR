@@ -805,12 +805,30 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="exportAllPDF()">📄 Rapport PDF</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="setFormateurEmail()">✉️ Mon email</button>
-        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="setAccessCode()">🔐 Code stagiaires</button>
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="exportAllPDF()">📄 Rapport PDF</button>
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="setFormateurEmail()">✉️ Mon email</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="changeFormateurPin()">🔑 Code formateur</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="exitFormateur()">✕ Quitter</button>
       </div>
     </div>
   </div>
+  <!-- Gestion des codes stagiaires -->
+  <div class="card" style="margin-bottom:12px;">
+    <div style="font-size:.95rem;font-weight:800;margin-bottom:12px;">🔐 Codes d'accès stagiaires</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <input id="fmt-st-prenom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Prénom">
+      <input id="fmt-st-nom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Nom">
+      <input id="fmt-st-code" class="ef-inp" style="flex:1;min-width:100px;max-width:140px;" placeholder="Code (auto)">
+      <button class="btn btn-p" style="padding:8px 16px;" onclick="addStagiaireCode()">+ Ajouter</button>
+    </div>
+    <div id="fmt-codes-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <div id="fmt-codes-empty" style="font-size:.82rem;color:var(--muted);text-align:center;padding:12px 0;">Aucun code créé — les stagiaires utilisent le code global.</div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-s" style="font-size:.78rem;padding:6px 12px;" onclick="printCodes()">🖨️ Imprimer les codes</button>
+      <button class="btn btn-s" style="font-size:.78rem;padding:6px 12px;" onclick="clearAllCodes()">🗑 Effacer tous les codes</button>
+    </div>
+  </div>
+
   <div id="fmt-stats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
   <div id="fmt-list"></div>
   <div id="fmt-empty" style="display:none;text-align:center;padding:48px 20px;color:var(--muted);">
@@ -2140,6 +2158,7 @@ function saveToProfilsList(){
   const entry={email:profil.email,prenom:profil.prenom,nom:profil.nom,savedAt:new Date().toISOString(),snap};
   if(idx>=0)liste[idx]=entry;else liste.push(entry);
   localStorage.setItem('profils_liste',JSON.stringify(liste));
+  saveStagiaireNamespace();
   syncToServer(snap);
 }
 
@@ -2365,13 +2384,50 @@ const API_URL='./api.php';
 let _fmtPin='';
 function getFormateurPin(){return localStorage.getItem('formateur_pin')||FORMATEUR_PIN_DEFAULT;}
 function getAccessCode(){return localStorage.getItem('stagiaire_code')||ACCESS_CODE_DEFAULT;}
+function getStagiairesList(){return JSON.parse(localStorage.getItem('stagiaires_list')||'[]');}
+function saveStagiairesList(l){localStorage.setItem('stagiaires_list',JSON.stringify(l));}
+
+// Clé namespaceée par code stagiaire
+function sKey(k){
+  const code=sessionStorage.getItem('stagiaire_code');
+  return code?'s_'+code+'_'+k:k;
+}
+
+// Charger les données d'un stagiaire dans les clés actives
+function loadStagiaireData(code){
+  ['parcours_profil','parcours_qimi','parcours_riasec','parcours_metiers','parcours_employeurs'].forEach(k=>{
+    const v=localStorage.getItem('s_'+code+'_'+k);
+    if(v)localStorage.setItem(k,v);
+    else localStorage.removeItem(k);
+  });
+}
+
+// Sauvegarder les clés actives dans le namespace du stagiaire
+function saveStagiaireNamespace(){
+  const code=sessionStorage.getItem('stagiaire_code');
+  if(!code)return;
+  ['parcours_profil','parcours_qimi','parcours_riasec','parcours_metiers','parcours_employeurs'].forEach(k=>{
+    const v=localStorage.getItem(k);
+    if(v)localStorage.setItem('s_'+code+'_'+k,v);
+  });
+}
 
 function checkAccessCode(){
   const val=document.getElementById('access-inp').value.trim();
   const err=document.getElementById('access-err');
-  if(val===getAccessCode()){
+  const list=getStagiairesList();
+  const found=list.find(s=>s.code===val);
+  const globalOk=val===getAccessCode();
+  if(found||globalOk){
     sessionStorage.setItem('stagiaire_auth','1');
     err.style.display='none';
+    if(found){
+      sessionStorage.setItem('stagiaire_code',found.code);
+      sessionStorage.setItem('stagiaire_nom',found.prenom+' '+found.nom);
+      loadStagiaireData(found.code);
+      // Afficher le nom dans la topbar
+      document.getElementById('tb-title').textContent='Parcours de '+found.prenom;
+    }
     proceedAfterAuth();
   }else{
     err.style.display='block';
@@ -2386,13 +2442,84 @@ function proceedAfterAuth(){
   else{go('scr-welcome');setpg(5);}
 }
 
+// ── Gestion codes stagiaires (formateur) ───────────────────────────────────
+function genCode(){return Math.random().toString(36).substr(2,6).toUpperCase();}
+
+function addStagiaireCode(){
+  const prenom=document.getElementById('fmt-st-prenom').value.trim();
+  const nom=document.getElementById('fmt-st-nom').value.trim();
+  let code=document.getElementById('fmt-st-code').value.trim().toUpperCase();
+  if(!prenom||!nom){toast('Prénom et nom requis','err');return;}
+  if(!code)code=genCode();
+  const list=getStagiairesList();
+  if(list.find(s=>s.code===code)){toast('Code déjà utilisé','err');return;}
+  list.push({prenom,nom,code});
+  saveStagiairesList(list);
+  document.getElementById('fmt-st-prenom').value='';
+  document.getElementById('fmt-st-nom').value='';
+  document.getElementById('fmt-st-code').value='';
+  renderCodesList();
+  toast(prenom+' '+nom+' — code : '+code,'ok');
+}
+
+function removeStagiaireCode(code){
+  if(!confirm('Supprimer le code '+code+' ?'))return;
+  saveStagiairesList(getStagiairesList().filter(s=>s.code!==code));
+  renderCodesList();
+}
+
+function renderCodesList(){
+  const list=getStagiairesList();
+  const el=document.getElementById('fmt-codes-list');
+  const empty=document.getElementById('fmt-codes-empty');
+  el.innerHTML='';
+  empty.style.display=list.length?'none':'block';
+  list.forEach(s=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;';
+    const hasDone=!!localStorage.getItem('s_'+s.code+'_parcours_profil');
+    row.innerHTML=
+      `<div style="flex:1;font-size:.9rem;font-weight:700;">${s.prenom} ${s.nom}</div>`+
+      `<div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--gold);letter-spacing:.1em;">${s.code}</div>`+
+      `<div style="font-size:.72rem;color:${hasDone?'var(--ok)':'var(--muted)'};">${hasDone?'✓ En cours':'–'}</div>`+
+      `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;color:#f77a7a;" onclick="removeStagiaireCode('${s.code}')">✕</button>`;
+    el.appendChild(row);
+  });
+}
+
+function printCodes(){
+  const list=getStagiairesList();
+  if(!list.length){toast('Aucun code à imprimer','err');return;}
+  let w=window.open('','_blank');
+  w.document.write(`<html><head><title>Codes d'accès stagiaires</title><style>
+    body{font-family:Arial,sans-serif;padding:30px;}
+    h2{color:#1e4dd8;} table{width:100%;border-collapse:collapse;margin-top:20px;}
+    th{background:#1e4dd8;color:#fff;padding:10px;text-align:left;}
+    td{padding:10px;border-bottom:1px solid #eee;}
+    .code{font-family:monospace;font-size:1.2rem;font-weight:bold;color:#e67e00;letter-spacing:.1em;}
+  </style></head><body>
+  <h2>Codes d'accès — Plateforme Parcours Pro</h2>
+  <p>URL : <strong>${window.location.href}</strong></p>
+  <table><tr><th>Prénom</th><th>Nom</th><th>Code d'accès</th></tr>
+  ${list.map(s=>`<tr><td>${s.prenom}</td><td>${s.nom}</td><td class="code">${s.code}</td></tr>`).join('')}
+  </table></body></html>`);
+  w.document.close();w.print();
+}
+
+function clearAllCodes(){
+  if(!confirm('Supprimer tous les codes stagiaires ?'))return;
+  localStorage.removeItem('stagiaires_list');
+  renderCodesList();
+  toast('Codes supprimés','ok');
+}
+
 function setAccessCode(){
   const cur=localStorage.getItem('stagiaire_code')||ACCESS_CODE_DEFAULT;
-  const n=prompt('Code d\'accès stagiaire actuel : '+cur+'\n\nNouveau code (min. 4 caractères) :');
+  const n=prompt('Code global actuel : '+cur+'\n\nNouveau code global (utilisé si aucun code individuel) :');
   if(!n)return;
   if(n.trim().length<4){toast('Code trop court (min. 4 caractères)','err');return;}
   localStorage.setItem('stagiaire_code',n.trim());
-  toast('Code stagiaire mis à jour : '+n.trim(),'ok');
+  toast('Code global mis à jour : '+n.trim(),'ok');
 }
 function openFormateurLogin(){
   const pinSaved=localStorage.getItem('formateur_pin');
@@ -2544,6 +2671,7 @@ function refreshMailtoBtn(){
   if(wrap) wrap.style.display=localStorage.getItem('formateur_email')?'block':'none';
 }
 async function renderFormateurDashboard(){
+  renderCodesList();
   const listEl=document.getElementById('fmt-list');
   const emptyEl=document.getElementById('fmt-empty');
   const statsEl=document.getElementById('fmt-stats');
