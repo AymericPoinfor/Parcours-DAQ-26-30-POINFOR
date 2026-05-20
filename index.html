@@ -2643,11 +2643,16 @@ function sendInvitation(prenom,nom,code){
   frame.srcdoc=html;
 
   document.getElementById('mail-copy-btn').onclick=()=>{
-    navigator.clipboard.writeText(html).then(()=>toast('HTML copié — collez dans Outlook/Gmail','ok')).catch(()=>{
+    try{
+      const blob=new Blob([html],{type:'text/html'});
+      const item=new ClipboardItem({'text/html':blob});
+      navigator.clipboard.write([item]).then(()=>toast('Contenu copié — collez dans Outlook ou Gmail (Ctrl+V)','ok')).catch(()=>fallbackCopy());
+    }catch(e){fallbackCopy();}
+    function fallbackCopy(){
       const ta=document.createElement('textarea');
       ta.value=html; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-      toast('HTML copié','ok');
-    });
+      toast('HTML copié (coller en mode riche dans votre client mail)','ok');
+    }
   };
 
   const plainBody=`Bonjour ${prenom},\n\nDans le cadre de votre formation DAQ, vous êtes invité(e) à réaliser votre bilan d'orientation sur la Plateforme Parcours Pro de POINFOR.\n\nAccès : ${url}\nCode personnel : ${code}\n\nBien cordialement,\nVotre formateur POINFOR`;
