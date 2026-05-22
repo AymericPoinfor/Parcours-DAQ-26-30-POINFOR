@@ -2577,9 +2577,21 @@ function clearAllCodes(){
   toast('Codes supprimés','ok');
 }
 
-function sendInvitation(prenom,nom,code,email=''){
+async function sendInvitation(prenom,nom,code,email=''){
   const base=window.location.href.split('?')[0];
   const url=`${base}?p=${encodeURIComponent(prenom)}&n=${encodeURIComponent(nom)}&c=${encodeURIComponent(code)}`;
+  // Envoi direct via serveur si email disponible
+  if(email && _fmtPin){
+    toast('Envoi en cours…');
+    try{
+      const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Pin':_fmtPin},
+        body:JSON.stringify({action:'send_invitation',email,prenom,nom,code,url})});
+      const d=await r.json();
+      if(d.ok){toast('✅ Invitation envoyée à '+email,'ok');return;}
+      else{toast('Erreur : '+( d.error||'inconnue'),'err');}
+    }catch(e){toast('Erreur réseau','err');}
+    return;
+  }
   const logoSrc=document.getElementById('tb-logo-img')?.src||'';
   const logoHtml=logoSrc?`<img src="${logoSrc}" alt="Poinfor" style="height:54px;display:block;margin:0 auto 14px;">`:
     `<div style="font-size:26px;font-weight:800;color:#ffffff;letter-spacing:1px;">POINFOR</div>`;
