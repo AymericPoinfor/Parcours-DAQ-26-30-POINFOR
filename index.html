@@ -1907,7 +1907,7 @@ function buildAction(){
         const qGo=encodeURIComponent('stage immersion '+nom+' '+loc.dept);
         const qGm=encodeURIComponent(nom+' '+loc.city);
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-          <span style="font-size:.87rem;font-weight:700;min-width:170px;flex-shrink:0;">${j.e} ${nom}</span>
+          <span style="font-size:.87rem;font-weight:700;flex:1;min-width:160px;">${j.e} ${nom}</span>
           <a href="https://candidat.francetravail.fr/offres/recherche?motsCles=${qFT}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(0,80,180,.15);border-color:rgba(0,80,180,.4);color:#6aacff;">🏛 France Travail</a>
           <a href="https://www.google.com/search?q=${qGo}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(234,67,53,.1);border-color:rgba(234,67,53,.35);color:#ff8070;">🔎 Google</a>
           <a href="https://maps.google.com/?q=${qGm}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(52,168,83,.1);border-color:rgba(52,168,83,.35);color:#5ecf80;">📍 Google Maps</a>
