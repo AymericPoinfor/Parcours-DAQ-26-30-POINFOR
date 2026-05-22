@@ -510,6 +510,9 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div class="chip"><div class="cn">5</div>Plan d'action</div>
   </div>
   <button class="btn btn-p btn-lg" onclick="go('scr-form');setpg(12)">Créer mon profil →</button>
+  <div style="margin-top:18px;">
+    <button onclick="openAdminLogin()" style="background:none;border:none;color:rgba(232,234,246,0.18);font-size:.65rem;cursor:pointer;letter-spacing:.05em;padding:4px 8px;">Administration</button>
+  </div>
 </div>
 
 <!-- ══ FORM ══ -->
@@ -818,7 +821,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div>
         <div style="font-size:1.3rem;font-weight:800;">Tableau de bord</div>
-        <div style="font-size:.82rem;color:var(--muted);">Profils enregistrés sur cet appareil</div>
+        <div style="font-size:.82rem;color:var(--muted);" id="fmt-identity">Chargement…</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="exportAllPDF()">📄 Rapport PDF</button>
@@ -1057,6 +1060,44 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   <div style="border-top:1px solid #eee;padding-top:5px;font-size:7pt;color:#bbb;text-align:center;">Bilan complet — Parcours d'insertion professionnelle — Poinfor</div>
 </div>
 
+<!-- ══ ADMIN SCREEN ══ -->
+<div class="scr" id="scr-admin">
+  <div class="card" style="margin-bottom:12px;">
+    <div class="fmt-badge" style="background:rgba(245,200,66,.15);color:#f5c842;border-color:rgba(245,200,66,.3);">🛡️ Espace Administrateur</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:1.3rem;font-weight:800;">Gestion des formateurs</div>
+        <div style="font-size:.82rem;color:var(--muted);">Seul l'administrateur peut créer ou désactiver des accès formateur.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="refreshAdminPanel();toast('Actualisé','ok')">🔄 Actualiser</button>
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="changeAdminPin()">🔑 Code admin</button>
+        <button class="btn btn-p" style="font-size:.8rem;padding:8px 14px;" onclick="exitAdmin()">✕ Quitter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Créer un formateur -->
+  <div class="card" style="margin-bottom:12px;">
+    <div style="font-size:.95rem;font-weight:800;margin-bottom:14px;">➕ Ajouter un formateur</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <input id="adm-prenom" class="ef-inp" style="flex:1;min-width:120px;" placeholder="Prénom *">
+      <input id="adm-nom" class="ef-inp" style="flex:1;min-width:120px;" placeholder="Nom *">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input id="adm-email" class="ef-inp" type="email" style="flex:1;" placeholder="Email du formateur *">
+      <button class="btn btn-p" style="padding:8px 18px;white-space:nowrap;" onclick="createFormateur()">Créer &amp; inviter</button>
+    </div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:8px;">Un code d'accès unique est généré automatiquement et envoyé par email au formateur.</div>
+  </div>
+
+  <!-- Liste des formateurs -->
+  <div class="card">
+    <div style="font-size:.95rem;font-weight:800;margin-bottom:4px;">👨‍🏫 Formateurs actifs</div>
+    <div id="admin-fmt-list"><div style="text-align:center;padding:24px;color:var(--muted);font-size:.85rem;">⏳ Chargement…</div></div>
+  </div>
+</div>
+
 <!-- ══ BARRE DÉMO (activée par ?demo dans l'URL) ══ -->
 <div id="dev-bar">
   <span class="dev-badge">🧪 DÉMO</span>
@@ -1150,10 +1191,12 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   if(p.has('demo')){document.getElementById('dev-bar').style.display='flex';return;}
   // Mode formateur direct
   if(p.has('formateur')){openFormateurLogin();return;}
-  // Authentification via lien d'invitation (URL params ?p=Prenom&n=Nom&c=CODE)
+  // Authentification via lien d'invitation (URL params ?p=Prenom&n=Nom&c=CODE&f=formateurEmail)
   const urlPrenom=p.get('p')||'';
   const urlNom=p.get('n')||'';
   const urlCode=p.get('c')||'';
+  const urlFmt=p.get('f')||'';
+  if(urlFmt) localStorage.setItem('parcours_formateur',urlFmt);
   if(urlPrenom&&urlNom&&urlCode){
     const list=getStagiairesList();
     if(!list.find(s=>s.code===urlCode)){
@@ -2281,6 +2324,7 @@ function saveToProfilsList(){
 async function syncToServer(snap){
   try{
     const etape=snap.metiers?'metiers':snap.riasec?'riasec':snap.qimi?'qimi':'profil';
+    const formateurEmail=localStorage.getItem('parcours_formateur')||'';
     await fetch(API_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -2289,6 +2333,7 @@ async function syncToServer(snap){
         prenom:snap.profil.prenom,
         nom:snap.profil.nom,
         etape,
+        formateur_email:formateurEmail,
         ...snap
       })
     });
@@ -2499,6 +2544,8 @@ const FORMATEUR_PIN_DEFAULT='POINFOR2026';
 const ACCESS_CODE_DEFAULT='DAQ2026';
 const API_URL='https://mypoinfor.org/parcours/api.php';
 let _fmtPin='';
+let _fmtFmt=null;    // {email, prenom, nom} du formateur connecté
+let _adminPin='';
 function getFormateurPin(){return localStorage.getItem('formateur_pin')||FORMATEUR_PIN_DEFAULT;}
 function getAccessCode(){return localStorage.getItem('stagiaire_code')||ACCESS_CODE_DEFAULT;}
 function getStagiairesList(){return JSON.parse(localStorage.getItem('stagiaires_list')||'[]');}
@@ -2658,7 +2705,8 @@ function clearAllCodes(){
 
 async function sendInvitation(prenom,nom,code,email=''){
   const base=window.location.href.split('?')[0];
-  const url=`${base}?p=${encodeURIComponent(prenom)}&n=${encodeURIComponent(nom)}&c=${encodeURIComponent(code)}`;
+  const fmtEmail=_fmtFmt?.email||'';
+  const url=`${base}?p=${encodeURIComponent(prenom)}&n=${encodeURIComponent(nom)}&c=${encodeURIComponent(code)}${fmtEmail?'&f='+encodeURIComponent(fmtEmail):''}`;
   // Envoi direct via serveur si email disponible
   if(email && _fmtPin){
     toast('Envoi en cours…');
@@ -2879,36 +2927,156 @@ function createFormateurPin(){
   go('scr-formateur');setStep('Mode Formateur');setTitle('Tableau de bord');setpg(0);
   toast('Code formateur créé !','ok');
 }
-function checkFormateurPin(){
+async function checkFormateurPin(){
   const pin=document.getElementById('fmt-pin').value.trim();
-  if(pin===getFormateurPin()){
+  if(!pin)return;
+  const errEl=document.getElementById('fmt-pin-err');
+  errEl.style.display='none';
+  try{
+    const r=await fetch(API_URL+'?action=me',{headers:{'X-Pin':pin}});
+    if(r.status===403){
+      errEl.textContent='Code incorrect. Réessayez.';
+      errEl.style.display='block';
+      document.getElementById('fmt-pin').value='';
+      document.getElementById('fmt-pin').focus();
+      return;
+    }
+    const d=await r.json();
+    if(!d.ok){errEl.textContent='Erreur serveur.';errEl.style.display='block';return;}
     _fmtPin=pin;
+    _fmtFmt=d.formateur;
     closeFmtModal();
     renderFormateurDashboard();
-    go('scr-formateur');setStep('Mode Formateur');setTitle('Tableau de bord');setpg(0);
+    go('scr-formateur');setStep('Mode Formateur');setTitle('Tableau de bord formateur');setpg(0);
     clearInterval(_autoRefresh);
     _autoRefresh=setInterval(()=>renderFormateurDashboard(),30000);
-  }else{
-    document.getElementById('fmt-pin-err').style.display='block';
-    document.getElementById('fmt-pin').value='';
-    document.getElementById('fmt-pin').focus();
+  }catch(e){
+    errEl.textContent='Erreur réseau. Vérifiez votre connexion.';
+    errEl.style.display='block';
   }
 }
 function changeFormateurPin(){
-  const n=prompt('Nouveau code formateur (min. 4 caractères) :');
-  if(!n)return;
-  if(n.length<4){toast('Code trop court (min. 4 caractères)','err');return;}
-  const c=prompt('Confirmez le nouveau code :');
-  if(n!==c){toast('Les codes ne correspondent pas','err');return;}
-  localStorage.setItem('formateur_pin',n);
-  _fmtPin=n;
-  fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Pin':_fmtPin},
-    body:JSON.stringify({action:'set_pin',new_pin:n})}).catch(()=>{});
-  toast('Code formateur mis à jour !','ok');
+  toast('Le code formateur est géré par l\'administrateur.','err');
 }
 let _autoRefresh=null;
 function exitFormateur(){
   clearInterval(_autoRefresh);_autoRefresh=null;
+  _fmtPin='';_fmtFmt=null;
+  go('scr-welcome');setpg(5);setStep('Étape 1 / 5');setTitle('Plateforme d\'insertion');
+}
+
+// ══════════════════════════════════════════
+//  ESPACE ADMIN
+// ══════════════════════════════════════════
+function openAdminLogin(){
+  const m=document.getElementById('fmt-modal');
+  document.getElementById('fmt-modal-inner').innerHTML=`
+    <div style="font-size:2rem;margin-bottom:10px;">🛡️</div>
+    <div class="modal-title">Espace Administrateur</div>
+    <div class="modal-sub">Accès réservé à l'administrateur POINFOR.</div>
+    <div class="field" style="margin-bottom:16px;"><label>Code administrateur</label><input type="password" id="admin-pin-input" class="ef-inp" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')checkAdminPin()"></div>
+    <div id="admin-pin-err" style="display:none;color:#f77a7a;font-size:.8rem;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:9px;">
+      <button class="btn btn-p btn-full" onclick="checkAdminPin()">Accéder →</button>
+      <button class="btn btn-s" onclick="closeFmtModal()">Annuler</button>
+    </div>`;
+  m.style.display='flex';
+  setTimeout(()=>document.getElementById('admin-pin-input')?.focus(),100);
+}
+
+async function checkAdminPin(){
+  const pin=document.getElementById('admin-pin-input').value.trim();
+  if(!pin)return;
+  const errEl=document.getElementById('admin-pin-err');errEl.style.display='none';
+  try{
+    const r=await fetch(API_URL+'?action=list_formateurs',{headers:{'X-Admin-Pin':pin}});
+    if(r.status===403){errEl.textContent='Code admin incorrect.';errEl.style.display='block';return;}
+    const formateurs=await r.json();
+    _adminPin=pin;
+    closeFmtModal();
+    renderAdminPanel(formateurs);
+    go('scr-admin');setStep('Administration');setTitle('Gestion des formateurs');setpg(0);
+  }catch(e){errEl.textContent='Erreur réseau.';errEl.style.display='block';}
+}
+
+function renderAdminPanel(formateurs){
+  const listEl=document.getElementById('admin-fmt-list');
+  if(!formateurs.length){
+    listEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Aucun formateur pour l\'instant.</div>';return;
+  }
+  listEl.innerHTML=formateurs.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--card-border);">
+      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#fff;flex-shrink:0;">${(f.prenom?.[0]||'')+(f.nom?.[0]||'')}</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:.9rem;">${f.prenom} ${f.nom}</div>
+        <div style="font-size:.75rem;color:var(--muted);">${f.email} · <span style="font-family:monospace;color:var(--gold);">${f.pin}</span></div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">${f.nb_stagiaires} stagiaire${f.nb_stagiaires!=1?'s':''} · Depuis le ${new Date(f.created_at).toLocaleDateString('fr-FR')}</div>
+      </div>
+      <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${f.actif?'rgba(79,207,142,.15)':'rgba(247,122,122,.12)'};color:${f.actif?'#4fe08a':'#f77a7a'};">${f.actif?'Actif':'Inactif'}</span>
+      ${f.actif?`<button class="btn btn-s" style="font-size:.75rem;padding:6px 12px;color:#f77a7a;border-color:rgba(247,122,122,.4);" onclick="deleteFormateur('${f.email}')">Désactiver</button>`:''}
+    </div>`).join('');
+}
+
+async function refreshAdminPanel(){
+  try{
+    const r=await fetch(API_URL+'?action=list_formateurs',{headers:{'X-Admin-Pin':_adminPin}});
+    renderAdminPanel(await r.json());
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+async function createFormateur(){
+  const prenom=document.getElementById('adm-prenom').value.trim();
+  const nom=document.getElementById('adm-nom').value.trim();
+  const email=document.getElementById('adm-email').value.trim();
+  if(!prenom||!nom){toast('Prénom et nom requis','err');return;}
+  if(!email){toast('Email requis','err');return;}
+  const url=window.location.href.split('?')[0];
+  toast('Création en cours…');
+  try{
+    const r=await fetch(API_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
+      body:JSON.stringify({action:'create_formateur',prenom,nom,email,url})});
+    const d=await r.json();
+    if(d.ok){
+      toast(`✅ Formateur créé — code : ${d.pin}`,'ok');
+      document.getElementById('adm-prenom').value='';
+      document.getElementById('adm-nom').value='';
+      document.getElementById('adm-email').value='';
+      await refreshAdminPanel();
+    }else{toast('Erreur : '+(d.error||'inconnue'),'err');}
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+async function deleteFormateur(email){
+  if(!confirm(`Désactiver le formateur ${email} ?\nSes stagiaires resteront en base mais il ne pourra plus se connecter.`))return;
+  try{
+    const r=await fetch(API_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
+      body:JSON.stringify({action:'delete_formateur',email})});
+    const d=await r.json();
+    if(d.ok){toast('Formateur désactivé','ok');await refreshAdminPanel();}
+    else{toast('Erreur','err');}
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+async function changeAdminPin(){
+  const n=prompt('Nouveau code administrateur (min. 6 caractères) :');
+  if(!n)return;
+  if(n.length<6){toast('Code trop court (min. 6 caractères)','err');return;}
+  const c=prompt('Confirmez le nouveau code :');
+  if(n!==c){toast('Les codes ne correspondent pas','err');return;}
+  try{
+    const r=await fetch(API_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
+      body:JSON.stringify({action:'set_admin_pin',new_pin:n})});
+    const d=await r.json();
+    if(d.ok){_adminPin=n;toast('Code admin mis à jour !','ok');}
+    else{toast('Erreur','err');}
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+function exitAdmin(){
+  _adminPin='';
   go('scr-welcome');setpg(5);setStep('Étape 1 / 5');setTitle('Plateforme d\'insertion');
 }
 
@@ -2991,6 +3159,8 @@ function refreshMailtoBtn(){
 }
 async function renderFormateurDashboard(){
   renderCodesList();
+  const idEl=document.getElementById('fmt-identity');
+  if(idEl&&_fmtFmt) idEl.textContent=_fmtFmt.prenom+' '+_fmtFmt.nom+' — '+_fmtFmt.email;
   const listEl=document.getElementById('fmt-list');
   const emptyEl=document.getElementById('fmt-empty');
   const statsEl=document.getElementById('fmt-stats');
