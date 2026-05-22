@@ -267,6 +267,13 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 .mr-emoji{font-size:1.4rem;flex-shrink:0;}
 .mr-name{font-weight:700;font-size:.92rem;margin-bottom:2px;}
 .mr-desc{font-size:.75rem;color:var(--muted);margin-bottom:5px;}
+/* plan A/B/C buttons */
+.plan-btns{display:flex;flex-direction:column;gap:4px;align-items:flex-end;padding-top:2px;flex-shrink:0;}
+.plan-btn{width:26px;height:26px;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:rgba(255,255,255,.35);cursor:pointer;font-size:.7rem;font-weight:800;transition:all .15s;letter-spacing:.02em;}
+.plan-btn:hover{border-color:rgba(255,255,255,.4);color:rgba(255,255,255,.7);}
+.plan-btn.active.plan-A{background:rgba(79,207,142,.2);color:#4fe08a;border-color:rgba(79,207,142,.5);}
+.plan-btn.active.plan-B{background:rgba(106,172,255,.2);color:#6aacff;border-color:rgba(106,172,255,.5);}
+.plan-btn.active.plan-C{background:rgba(245,200,66,.2);color:#f5c842;border-color:rgba(245,200,66,.5);}
 /* print */
 @media print{
   @page{size:A4 portrait;margin:12mm 14mm;}
@@ -1744,14 +1751,19 @@ function valMetiers(){
 
 function showMetiersResult(jobs){
   const el=document.getElementById('mr-jobs');el.innerHTML='';
+  const md=JSON.parse(localStorage.getItem('parcours_metiers')||'{}');
+  const plans=md.plans||{A:[],B:[],C:[]};
   jobs.forEach((job,i)=>{
     const mc=job.score>=70?'high':job.score>=45?'mid':'low';
     const qTags=job.q.map(k=>`<span class="job-tag" style="background:${QCAT[k].color}25;color:${QCAT[k].color};border-color:${QCAT[k].color}40">${QCAT[k].emoji}</span>`).join('');
     const rTags=job.r.slice(0,2).map(k=>`<span class="job-tag" style="color:${RCOLORS[k]};border-color:${RCOLORS[k]}40">${k}</span>`).join('');
-    const d=document.createElement('div');d.className='mr-job';
+    const curPlan=['A','B','C'].find(p=>(plans[p]||[]).includes(job.id))||'';
+    const planBtns=['A','B','C'].map(p=>`<button onclick="assignPlan(${job.id},'${p}')" data-plan="${p}" class="plan-btn plan-${p}${curPlan===p?' active':''}" title="Plan ${p}">${p}</button>`).join('');
+    const d=document.createElement('div');d.className='mr-job';d.dataset.jobId=job.id;
     d.innerHTML=`<div class="mr-num">${i+1}</div><div class="mr-emoji">${job.e}</div>`+
       `<div style="flex:1"><div class="mr-name">${job.n}</div><div class="mr-desc">${job.d}</div>`+
-      `<div class="job-tags">${qTags}${rTags}<span class="match-badge ${mc}" style="margin-left:4px">${job.score}%</span></div></div>`;
+      `<div class="job-tags">${qTags}${rTags}<span class="match-badge ${mc}" style="margin-left:4px">${job.score}%</span></div></div>`+
+      `<div class="plan-btns">${planBtns}</div>`;
     el.appendChild(d);
   });
   const p=JSON.parse(localStorage.getItem('parcours_profil')||'{}');
@@ -1760,6 +1772,21 @@ function showMetiersResult(jobs){
   document.getElementById('sel-bar').style.display='none';
   go('scr-metiers-result');setpg(100);setStep('Parcours complet ✓');setTitle('Mes métiers');
   toast('Sélection enregistrée !','ok');
+}
+
+function assignPlan(jobId, plan){
+  const md=JSON.parse(localStorage.getItem('parcours_metiers')||'{}');
+  const plans=md.plans||{A:[],B:[],C:[]};
+  const wasThere=(plans[plan]||[]).includes(jobId);
+  ['A','B','C'].forEach(p=>{plans[p]=(plans[p]||[]).filter(id=>id!==jobId);});
+  if(!wasThere)plans[plan].push(jobId);
+  md.plans=plans;
+  localStorage.setItem('parcours_metiers',JSON.stringify(md));
+  saveToProfilsList();
+  const curPlan=wasThere?'':plan;
+  document.querySelectorAll(`[data-job-id="${jobId}"] .plan-btn`).forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.plan===curPlan);
+  });
 }
 
 function fillBilanPrint(){
@@ -1899,21 +1926,46 @@ function buildAction(){
   const rs=document.getElementById('region-suggest');
   if(loc&&jobs.length>0){
     rs.style.display='block';
+    const plansData=md?.plans||{A:[],B:[],C:[]};
+    const hasPlans=['A','B','C'].some(p=>plansData[p]?.length>0);
+    const PLAN_COLORS={A:{bg:'rgba(79,207,142,.12)',border:'rgba(79,207,142,.35)',col:'#4fe08a',label:'Plan A — Priorité'},B:{bg:'rgba(106,172,255,.12)',border:'rgba(106,172,255,.35)',col:'#6aacff',label:'Plan B — Alternatif'},C:{bg:'rgba(245,200,66,.12)',border:'rgba(245,200,66,.35)',col:'#f5c842',label:'Plan C — Exploration'}};
+    const jobRow=j=>{
+      const nom=j.n.split('/')[0].trim();
+      const qFT=encodeURIComponent(nom+' '+loc.city);
+      const qGo=encodeURIComponent('stage immersion '+nom+' '+loc.dept);
+      const qGm=encodeURIComponent(nom+' '+loc.city);
+      return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <span style="font-size:.87rem;font-weight:700;flex:1;min-width:160px;">${j.e} ${nom}</span>
+        <a href="https://candidat.francetravail.fr/offres/recherche?motsCles=${qFT}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(0,80,180,.15);border-color:rgba(0,80,180,.4);color:#6aacff;">🏛 France Travail</a>
+        <a href="https://www.google.com/search?q=${qGo}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(234,67,53,.1);border-color:rgba(234,67,53,.35);color:#ff8070;">🔎 Google</a>
+        <a href="https://maps.google.com/?q=${qGm}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(52,168,83,.1);border-color:rgba(52,168,83,.35);color:#5ecf80;">📍 Google Maps</a>
+      </div>`;
+    };
+    let bodyHtml='';
+    if(hasPlans){
+      ['A','B','C'].forEach(p=>{
+        const pJobs=jobs.filter(j=>(plansData[p]||[]).includes(j.id));
+        if(!pJobs.length)return;
+        const pc=PLAN_COLORS[p];
+        bodyHtml+=`<div style="border:1px solid ${pc.border};border-radius:10px;padding:14px 16px;margin-bottom:14px;background:${pc.bg};">
+          <div style="font-size:.75rem;font-weight:800;color:${pc.col};letter-spacing:.06em;margin-bottom:10px;">⭐ ${pc.label}</div>
+          ${pJobs.map(jobRow).join('')}
+        </div>`;
+      });
+      const unclassified=jobs.filter(j=>!['A','B','C'].some(p=>(plansData[p]||[]).includes(j.id)));
+      if(unclassified.length){
+        bodyHtml+=`<div style="margin-top:4px;margin-bottom:10px;">
+          <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:8px;">— Non classés</div>
+          ${unclassified.map(jobRow).join('')}
+        </div>`;
+      }
+    }else{
+      bodyHtml=jobs.map(jobRow).join('');
+    }
     rs.innerHTML=`<div class="card" style="padding:18px 22px;">
       <div style="font-size:1rem;font-weight:800;margin-bottom:4px;">📍 Employeurs à trouver — ${loc.dept}</div>
       <div style="font-size:.8rem;color:var(--muted);margin-bottom:14px;">Liens pré-remplis pour votre région · cliquez pour ouvrir la recherche dans un nouvel onglet</div>
-      ${jobs.map(j=>{
-        const nom=j.n.split('/')[0].trim();
-        const qFT=encodeURIComponent(nom+' '+loc.city);
-        const qGo=encodeURIComponent('stage immersion '+nom+' '+loc.dept);
-        const qGm=encodeURIComponent(nom+' '+loc.city);
-        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-          <span style="font-size:.87rem;font-weight:700;flex:1;min-width:160px;">${j.e} ${nom}</span>
-          <a href="https://candidat.francetravail.fr/offres/recherche?motsCles=${qFT}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(0,80,180,.15);border-color:rgba(0,80,180,.4);color:#6aacff;">🏛 France Travail</a>
-          <a href="https://www.google.com/search?q=${qGo}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(234,67,53,.1);border-color:rgba(234,67,53,.35);color:#ff8070;">🔎 Google</a>
-          <a href="https://maps.google.com/?q=${qGm}" target="_blank" rel="noopener" class="srch-link" style="font-size:.75rem;padding:5px 11px;background:rgba(52,168,83,.1);border-color:rgba(52,168,83,.35);color:#5ecf80;">📍 Google Maps</a>
-        </div>`;
-      }).join('')}
+      ${bodyHtml}
       <div style="font-size:.72rem;color:var(--muted);margin-top:6px;border-top:1px solid var(--card-border);padding-top:8px;">💡 Ces liens ouvrent des recherches sur des sites externes. Repérez une entreprise et ajoutez-la ci-dessous avec le bouton <strong>+ Ajouter un employeur</strong>.</div>
     </div>`;
   }else{
@@ -3088,6 +3140,28 @@ function showStagiaireDetail(idx){
     }).join('')+`</div>`;
   }
 
+  // ── Plans A/B/C ──
+  const mdPlans=md?.plans||{A:[],B:[],C:[]};
+  const hasPlans=['A','B','C'].some(p=>mdPlans[p]?.length>0);
+  let plansHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Aucun plan défini</div>';
+  if(hasPlans&&md?.selected?.length){
+    const PC={A:{col:'#4fe08a',bg:'rgba(79,207,142,.12)',border:'rgba(79,207,142,.3)',label:'Plan A — Priorité'},B:{col:'#6aacff',bg:'rgba(106,172,255,.12)',border:'rgba(106,172,255,.3)',label:'Plan B — Alternatif'},C:{col:'#f5c842',bg:'rgba(245,200,66,.12)',border:'rgba(245,200,66,.3)',label:'Plan C — Exploration'}};
+    plansHtml=['A','B','C'].map(p=>{
+      const pJobs=md.selected.filter(j=>(mdPlans[p]||[]).includes(j.id));
+      if(!pJobs.length)return'';
+      const pc=PC[p];
+      const jobPills=pJobs.map(j=>`<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:5px 10px;margin-bottom:5px;">
+        <span>${j.e}</span><span style="font-size:.82rem;font-weight:700;">${j.n.split('/')[0].trim()}</span>
+        <span style="font-size:.75rem;font-weight:800;color:${scoreJob(j,qd,rd)>=70?'#4fe08a':scoreJob(j,qd,rd)>=45?'#6aacff':'#aaa'}">${scoreJob(j,qd,rd)}%</span>
+      </div>`).join('');
+      return`<div style="border:1px solid ${pc.border};border-radius:9px;padding:12px 14px;margin-bottom:10px;background:${pc.bg};">
+        <div style="font-size:.72rem;font-weight:800;color:${pc.col};letter-spacing:.07em;margin-bottom:8px;">⭐ ${pc.label}</div>
+        ${jobPills}
+      </div>`;
+    }).join('');
+    if(!plansHtml)plansHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Aucun plan défini</div>';
+  }
+
   // ── Plan d'action ──
   let planHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Aucun employeur ajouté</div>';
   if(empList.length){
@@ -3156,6 +3230,7 @@ function showStagiaireDetail(idx){
           <div>${sec('Personnalité RIASEC','🔬',riasecHtml)}</div>
         </div>
         ${sec('Métiers cibles','💼',metiersHtml)}
+        ${hasPlans?sec('Plans A / B / C','🗺️',plansHtml):''}
         ${sec('Plan d\'action — Employeurs','📋',planHtml)}
         <div style="font-size:.68rem;color:var(--muted);text-align:right;margin-top:8px;">Dernière mise à jour : ${new Date(entry.savedAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div>
       </div>
