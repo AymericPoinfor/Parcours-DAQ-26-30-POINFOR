@@ -2333,15 +2333,16 @@ function genBilanPDF(){
       `<th style="padding:4px 7px;text-align:left;border-bottom:1px solid #dde5ff;">Démarches</th>`+
       `<th style="padding:4px 7px;text-align:left;border-bottom:1px solid #dde5ff;">Réponse</th></tr>`+
       employers.map(emp=>{
-        const steps=[emp.steps.contacte?'📞':'',emp.steps.cv?'📄':'',emp.steps.lm?'✉️':''].filter(Boolean).join(' ');
-        const rep=emp.steps.reponse==='oui'?'✅':emp.steps.reponse==='non'?'❌':emp.steps.reponse==='attente'?'⏳':'';
+        const steps=[emp.steps.contacte?'📞 Contacté':'',emp.steps.cv?'📄 CV envoyé':'',emp.steps.lm?'✉️ LM envoyée':''].filter(Boolean).join('<br>');
+        const rep=emp.steps.reponse==='oui'?'✅ Accepté':emp.steps.reponse==='non'?'❌ Refusé':emp.steps.reponse==='attente'?'⏳ En attente':'—';
         const bc=emp.steps.reponse==='oui'?'#e8f5e9':emp.steps.reponse==='non'?'#ffebee':'#fff';
+        const contact=[emp.contact,emp.phone,emp.email].filter(Boolean).join(' · ');
         return`<tr style="background:${bc};border-bottom:1px solid #f0f0f0;">`+
-          `<td style="padding:4px 7px;font-weight:700;">${emp.company}</td>`+
-          `<td style="padding:4px 7px;">📍 ${emp.city}</td>`+
-          `<td style="padding:4px 7px;">${emp.metierEmoji} ${emp.metierName.split('/')[0].trim()}</td>`+
-          `<td style="padding:4px 7px;">${steps||'—'}</td>`+
-          `<td style="padding:4px 7px;">${rep||'—'}</td></tr>`;
+          `<td style="padding:5px 7px;font-weight:700;">${emp.company}${contact?`<div style="font-size:6.5pt;font-weight:400;color:#777;margin-top:2px;">${contact}</div>`:''}</td>`+
+          `<td style="padding:5px 7px;">📍 ${emp.city}</td>`+
+          `<td style="padding:5px 7px;">${emp.metierEmoji} ${emp.metierName.split('/')[0].trim()}</td>`+
+          `<td style="padding:5px 7px;line-height:1.6;">${steps||'—'}</td>`+
+          `<td style="padding:5px 7px;font-weight:700;">${rep}</td></tr>`;
       }).join('')+`</table>`;
   }else{eEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Aucun employeur ajouté</div>';}
   // Génération PDF
@@ -2930,7 +2931,7 @@ async function renderFormateurDashboard(){
           <span class="fmt-chip" style="background:${empN>0?'rgba(79,142,247,.15)':'rgba(255,255,255,.06)'};color:${empN>0?'var(--accent)':'var(--muted)'}">Emp: ${empN}</span>
         </div>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="exportProfilJSON(${idx})">📥 JSON</button>
+          ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">📋 Plan d'action</button>`:''}
           <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="deleteStagiaire('${p.email}',this)">🗑</button>
         </div>
       </div>`+
@@ -2964,6 +2965,48 @@ function exportProfilJSON(idx){
   a.click();URL.revokeObjectURL(url);
   toast('JSON exporté !','ok');
 }
+async function genPlanPDFFromSnap(idx){
+  const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
+  const entry=liste[idx];if(!entry)return;
+  const snap=entry.snap;
+  const p=snap?.profil||{};
+  const empList=snap?.employeurs?.list||[];
+  if(!empList.length){toast('Aucun employeur dans le plan d\'action','err');return;}
+  // Remplir le template print-action avec les données du stagiaire
+  const name=(p.prenom||'Stagiaire')+' '+(p.nom||'');
+  document.getElementById('pa-name').textContent=name.trim();
+  document.getElementById('pa-date').textContent='Plan du '+new Date().toLocaleDateString('fr-FR');
+  const c=empList.filter(e=>e.steps.contacte).length;
+  const cv=empList.filter(e=>e.steps.cv).length;
+  const ok=empList.filter(e=>e.steps.reponse==='oui').length;
+  document.getElementById('pa-stats').innerHTML=
+    `<div class="pa-stat"><div class="pa-stat-n">${empList.length}</div><div class="pa-stat-l">Employeurs</div></div>`+
+    `<div class="pa-stat"><div class="pa-stat-n" style="color:#1e4dd8">${c}</div><div class="pa-stat-l">Contactés</div></div>`+
+    `<div class="pa-stat"><div class="pa-stat-n" style="color:#e65100">${cv}</div><div class="pa-stat-l">CV envoyés</div></div>`+
+    `<div class="pa-stat"><div class="pa-stat-n" style="color:#2e7d32">${ok}</div><div class="pa-stat-l">Stages confirmés</div></div>`;
+  const cont=document.getElementById('pa-emps');cont.innerHTML='';
+  const stepDefs=[{key:'contacte',lbl:'📞 Contacté'},{key:'cv',lbl:'📄 CV envoyé'},{key:'lm',lbl:'✉️ LM envoyée'}];
+  empList.forEach(emp=>{
+    const rep=emp.steps.reponse;
+    const bc=rep==='oui'?'#2e7d32':rep==='non'?'#c62828':emp.steps.cv?'#1e4dd8':'#999';
+    const stH=stepDefs.map(s=>`<span class="pa-step ${emp.steps[s.key]?'done':'todo'}">${emp.steps[s.key]?'✓ ':''} ${s.lbl}</span>`).join('');
+    const rH=rep==='oui'?'<span class="pa-step oui">✅ Stage accepté</span>':rep==='non'?'<span class="pa-step non">✗ Refusé</span>':rep==='attente'?'<span class="pa-step att">⏳ En attente</span>':'';
+    const sub=[emp.contact?'Contact : '+emp.contact:'',emp.phone||'',emp.email||''].filter(Boolean).join(' · ');
+    const div=document.createElement('div');
+    div.className='pa-emp';div.style.borderLeftColor=bc;
+    div.innerHTML=
+      `<div class="pa-emp-hd"><div class="pa-emp-name">${emp.metierEmoji} ${emp.company} — ${emp.city}</div><span class="pa-emp-tag">${emp.metierName}</span></div>`+
+      (sub?`<div class="pa-emp-sub">${sub}</div>`:'')+
+      `<div class="pa-steps">${stH}${rH}</div>`+
+      (emp.note?`<div class="pa-note">${emp.note}</div>`:'');
+    cont.appendChild(div);
+  });
+  toast('Génération du plan…');
+  const fn='PlanAction_'+(p.prenom||'Stagiaire')+'_'+(p.nom||'')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
+  try{await captureAndSave(document.getElementById('print-action'),fn);toast('PDF enregistré !','ok');}
+  catch(e){toast('Erreur PDF','err');}
+}
+
 async function exportAllPDF(){
   const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
   if(!liste.length){toast('Aucun profil enregistré','err');return;}
