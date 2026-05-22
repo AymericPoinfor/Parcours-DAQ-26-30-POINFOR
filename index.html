@@ -1141,6 +1141,24 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   if(p.has('demo')){document.getElementById('dev-bar').style.display='flex';return;}
   // Mode formateur direct
   if(p.has('formateur')){openFormateurLogin();return;}
+  // Authentification via lien d'invitation (URL params ?p=Prenom&n=Nom&c=CODE)
+  const urlPrenom=p.get('p')||'';
+  const urlNom=p.get('n')||'';
+  const urlCode=p.get('c')||'';
+  if(urlPrenom&&urlNom&&urlCode){
+    const list=getStagiairesList();
+    if(!list.find(s=>s.code===urlCode)){
+      list.push({prenom:urlPrenom,nom:urlNom,code:urlCode,email:''});
+      saveStagiairesList(list);
+    }
+    sessionStorage.setItem('stagiaire_auth','1');
+    sessionStorage.setItem('stagiaire_code',urlCode);
+    loadStagiaireData(urlCode);
+    document.getElementById('tb-title').textContent='Parcours de '+urlPrenom;
+    history.replaceState(null,'',window.location.pathname);
+    proceedAfterAuth();
+    return;
+  }
   // Vérification code d'accès — obligatoire à chaque nouvelle session navigateur
   const authenticated=sessionStorage.getItem('stagiaire_auth')==='1';
   if(!authenticated){
@@ -2559,7 +2577,8 @@ function clearAllCodes(){
 }
 
 function sendInvitation(prenom,nom,code,email=''){
-  const url=window.location.href.split('?')[0];
+  const base=window.location.href.split('?')[0];
+  const url=`${base}?p=${encodeURIComponent(prenom)}&n=${encodeURIComponent(nom)}&c=${encodeURIComponent(code)}`;
   const logoSrc=document.getElementById('tb-logo-img')?.src||'';
   const logoHtml=logoSrc?`<img src="${logoSrc}" alt="Poinfor" style="height:54px;display:block;margin:0 auto 14px;">`:
     `<div style="font-size:26px;font-weight:800;color:#ffffff;letter-spacing:1px;">POINFOR</div>`;
