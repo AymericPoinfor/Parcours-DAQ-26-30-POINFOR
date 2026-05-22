@@ -2834,6 +2834,8 @@ function checkFormateurPin(){
     closeFmtModal();
     renderFormateurDashboard();
     go('scr-formateur');setStep('Mode Formateur');setTitle('Tableau de bord');setpg(0);
+    clearInterval(_autoRefresh);
+    _autoRefresh=setInterval(()=>renderFormateurDashboard(),30000);
   }else{
     document.getElementById('fmt-pin-err').style.display='block';
     document.getElementById('fmt-pin').value='';
@@ -2852,7 +2854,11 @@ function changeFormateurPin(){
     body:JSON.stringify({action:'set_pin',new_pin:n})}).catch(()=>{});
   toast('Code formateur mis à jour !','ok');
 }
-function exitFormateur(){go('scr-welcome');setpg(5);setStep('Étape 1 / 5');setTitle('Plateforme d\'insertion');}
+let _autoRefresh=null;
+function exitFormateur(){
+  clearInterval(_autoRefresh);_autoRefresh=null;
+  go('scr-welcome');setpg(5);setStep('Étape 1 / 5');setTitle('Plateforme d\'insertion');
+}
 
 function setFormateurEmail(){
   const cur=localStorage.getItem('formateur_email')||'';
@@ -2977,6 +2983,8 @@ async function renderFormateurDashboard(){
     const empN=entry.snap.employeurs?.list?.length||0;
     const chip=(ok,lbl)=>`<span class="fmt-chip" style="background:${ok?'rgba(62,207,142,.2)':'rgba(255,255,255,.06)'};color:${ok?'var(--ok)':'var(--muted)'}">${lbl} ${ok?'✓':'—'}</span>`;
     const card=document.createElement('div');card.className='fmt-card';
+    card.style.cursor='pointer';
+    card.onclick=()=>showStagiaireDetail(idx);
     const avatar=p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:(p.prenom[0]+p.nom[0]).toUpperCase();
     card.innerHTML=
       `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -2989,16 +2997,12 @@ async function renderFormateurDashboard(){
           ${chip(hasQ,'QIMI')}${chip(hasR,'RIASEC')}${chip(hasM,'Métiers')}
           <span class="fmt-chip" style="background:${empN>0?'rgba(79,142,247,.15)':'rgba(255,255,255,.06)'};color:${empN>0?'var(--accent)':'var(--muted)'}">Emp: ${empN}</span>
         </div>
-        <div style="display:flex;gap:6px;">
-          ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="openPlanWindowFromSnap(${idx})">🔗 Plan d'action</button>`:''}
+        <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
+          <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="showStagiaireDetail(${idx})">👁 Détail</button>
           ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">💾 PDF</button>`:''}
           <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="deleteStagiaire('${p.email}',this)">🗑</button>
         </div>
       </div>`+
-      (hasM?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--card-border);">
-        <div style="font-size:.68rem;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;">Métiers choisis</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;">${entry.snap.metiers.selected.map(j=>`<span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.2)">${j.e} ${j.n.split('/')[0].trim()}</span>`).join('')}</div>
-      </div>`:'')+
       `<div style="font-size:.68rem;color:var(--muted);margin-top:8px;">Dernière mise à jour : ${new Date(entry.savedAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div>`;
     listEl.appendChild(card);
   });
@@ -3025,6 +3029,135 @@ function exportProfilJSON(idx){
   a.click();URL.revokeObjectURL(url);
   toast('JSON exporté !','ok');
 }
+function showStagiaireDetail(idx){
+  const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
+  const entry=liste[idx];if(!entry)return;
+  const snap=entry.snap;
+  const p=snap?.profil||{};
+  const qd=snap?.qimi;
+  const rd=snap?.riasec;
+  const md=snap?.metiers;
+  const empList=snap?.employeurs?.list||[];
+
+  // ── Avatar ──
+  const avatarHtml=p.photo
+    ?`<img src="${p.photo}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;flex-shrink:0;">`
+    :`<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;color:#fff;flex-shrink:0;">${(p.prenom?.[0]||'')+(p.nom?.[0]||'')}</div>`;
+
+  // ── QIMI ──
+  let qimiHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
+  if(qd?.scores){
+    const sorted=QKEYS.slice().sort((a,b)=>qd.scores[b]-qd.scores[a]).slice(0,5);
+    const medals=['🥇','🥈','🥉','4.','5.'];
+    qimiHtml=sorted.map((k,i)=>{
+      const c=QCAT[k];const pct=Math.round((qd.scores[k]/50)*100);
+      return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="width:20px;text-align:center;">${medals[i]}</span>
+        <span style="font-size:.82rem;font-weight:700;width:140px;flex-shrink:0;">${c.emoji} ${c.name}</span>
+        <div style="flex:1;height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${c.color};border-radius:4px;"></div></div>
+        <span style="font-size:.78rem;font-weight:800;color:${c.color};width:34px;text-align:right;">${qd.scores[k]}/50</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── RIASEC ──
+  let riasecHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
+  if(rd?.top3){
+    const lettersHtml=`<div style="font-size:2rem;font-weight:900;letter-spacing:.15em;margin-bottom:8px;">${rd.top3.map(l=>`<span style="color:${RCOLORS[l]}">${l}</span>`).join('')}</div>`;
+    const barsHtml=Object.entries(rd.norm||{}).sort((a,b)=>b[1]-a[1]).map(([l,pct])=>
+      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:22px;height:22px;border-radius:5px;background:${RCOLORS[l]};display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;color:#fff;flex-shrink:0;">${l}</div>
+        <div style="flex:1;height:7px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${RCOLORS[l]};border-radius:3px;"></div></div>
+        <span style="font-size:.78rem;font-weight:700;color:${RCOLORS[l]};width:34px;text-align:right;">${pct}%</span>
+      </div>`).join('');
+    riasecHtml=lettersHtml+barsHtml;
+  }
+
+  // ── Métiers ──
+  let metiersHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
+  if(md?.selected?.length){
+    metiersHtml=`<div style="display:flex;flex-wrap:wrap;gap:8px;">`+md.selected.map(j=>{
+      const pct=scoreJob(j,qd,rd);
+      const col=pct>=70?'#4fe08a':pct>=45?'#6aacff':'#aaa';
+      return`<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:6px;">
+        <span>${j.e}</span><span style="font-size:.82rem;font-weight:700;">${j.n.split('/')[0].trim()}</span>
+        <span style="font-weight:800;color:${col};font-size:.78rem;">${pct}%</span>
+      </div>`;
+    }).join('')+`</div>`;
+  }
+
+  // ── Plan d'action ──
+  let planHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Aucun employeur ajouté</div>';
+  if(empList.length){
+    planHtml=empList.map(emp=>{
+      const rep=emp.steps.reponse;
+      const bc=rep==='oui'?'#4fe08a':rep==='non'?'#f77a7a':rep==='attente'?'#f5c842':'rgba(255,255,255,.3)';
+      const steps=[emp.steps.contacte?'📞':'',emp.steps.cv?'📄 CV':'',emp.steps.lm?'✉️ LM':''].filter(Boolean).join(' · ');
+      const repLabel=rep==='oui'?'✅ Accepté':rep==='non'?'❌ Refusé':rep==='attente'?'⏳ En attente':'—';
+      return`<div style="border-left:3px solid ${bc};padding:10px 14px;margin-bottom:8px;background:rgba(255,255,255,.04);border-radius:0 8px 8px 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+          <div>
+            <div style="font-weight:700;font-size:.88rem;">${emp.metierEmoji} ${emp.company} <span style="color:var(--muted);font-weight:400;">— ${emp.city}</span></div>
+            <div style="font-size:.73rem;color:var(--muted);margin-top:2px;">${emp.metierName}${emp.contact?' · '+emp.contact:''}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            ${steps?`<span style="font-size:.72rem;color:rgba(255,255,255,.5);">${steps}</span>`:''}
+            <span style="font-size:.75rem;font-weight:700;color:${bc};">${repLabel}</span>
+          </div>
+        </div>
+        ${emp.note?`<div style="font-size:.72rem;color:var(--muted);margin-top:5px;font-style:italic;">${emp.note}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Construire la modal ──
+  let modal=document.getElementById('stagiaire-detail-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='stagiaire-detail-modal';
+    modal.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);overflow-y:auto;padding:20px;display:flex;align-items:flex-start;justify-content:center;';
+    modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
+    document.body.appendChild(modal);
+  }
+  const sec=(title,icon,content)=>
+    `<div style="margin-bottom:20px;">
+      <div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--card-border);">${icon} ${title}</div>
+      ${content}
+    </div>`;
+
+  modal.innerHTML=`
+    <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;width:100%;max-width:700px;overflow:hidden;margin:auto;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:24px;display:flex;align-items:center;gap:16px;">
+        ${avatarHtml}
+        <div style="flex:1;">
+          <div style="font-size:1.3rem;font-weight:800;color:#fff;">${p.prenom} ${p.nom}</div>
+          <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-top:3px;">${p.email||''}${p.age?' · '+p.age+' ans':''}${p.sit?' · '+p.sit:''}</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${qd?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${qd?'#4fe08a':'#aaa'};">QIMI ${qd?'✓':'—'}</span>
+            <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${rd?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${rd?'#4fe08a':'#aaa'};">RIASEC ${rd?'✓':'—'}</span>
+            <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${md?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${md?'#4fe08a':'#aaa'};">Métiers ${md?'✓':'—'}</span>
+            <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${empList.length?'rgba(79,142,247,.2)':'rgba(255,255,255,.08)'};color:${empList.length?'#6aacff':'#aaa'};">${empList.length} employeur${empList.length>1?'s':''}</span>
+          </div>
+        </div>
+        <button onclick="document.getElementById('stagiaire-detail-modal').style.display='none'" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;flex-shrink:0;">✕</button>
+      </div>
+      <!-- Body -->
+      <div style="padding:24px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+          <div>${sec('Centres d\'intérêt','🎯',qimiHtml)}</div>
+          <div>${sec('Personnalité RIASEC','🔬',riasecHtml)}</div>
+        </div>
+        ${sec('Métiers cibles','💼',metiersHtml)}
+        ${sec('Plan d\'action — Employeurs','📋',planHtml)}
+        <div style="font-size:.68rem;color:var(--muted);text-align:right;margin-top:8px;">Dernière mise à jour : ${new Date(entry.savedAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+      </div>
+    </div>`;
+  modal.style.display='flex';
+}
+
 async function genPlanPDFFromSnap(idx){
   const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
   const entry=liste[idx];if(!entry)return;
