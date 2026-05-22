@@ -494,6 +494,10 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     </div>
     <div id="access-err" style="display:none;color:#f77a7a;font-size:.82rem;margin-bottom:12px;line-height:1.5;">Identifiants incorrects.<br>Vérifiez votre prénom, nom et code.</div>
     <button class="btn btn-p btn-full" onclick="checkAccessCode()">Accéder à mon parcours →</button>
+    <div style="margin-top:20px;display:flex;justify-content:center;gap:20px;">
+      <button onclick="openFormateurLogin()" style="background:none;border:none;color:rgba(232,234,246,0.25);font-size:.68rem;cursor:pointer;letter-spacing:.04em;padding:4px 8px;">Mode Formateur</button>
+      <button onclick="openAdminLogin()" style="background:none;border:none;color:rgba(232,234,246,0.15);font-size:.68rem;cursor:pointer;letter-spacing:.04em;padding:4px 8px;">Administration</button>
+    </div>
   </div>
 </div>
 
