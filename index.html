@@ -2990,7 +2990,8 @@ async function renderFormateurDashboard(){
           <span class="fmt-chip" style="background:${empN>0?'rgba(79,142,247,.15)':'rgba(255,255,255,.06)'};color:${empN>0?'var(--accent)':'var(--muted)'}">Emp: ${empN}</span>
         </div>
         <div style="display:flex;gap:6px;">
-          ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">📋 Plan d'action</button>`:''}
+          ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="openPlanWindowFromSnap(${idx})">🔗 Plan d'action</button>`:''}
+          ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">💾 PDF</button>`:''}
           <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="deleteStagiaire('${p.email}',this)">🗑</button>
         </div>
       </div>`+
@@ -3064,6 +3065,64 @@ async function genPlanPDFFromSnap(idx){
   const fn='PlanAction_'+(p.prenom||'Stagiaire')+'_'+(p.nom||'')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
   try{await captureAndSave(document.getElementById('print-action'),fn);toast('PDF enregistré !','ok');}
   catch(e){toast('Erreur PDF','err');}
+}
+
+function openPlanWindowFromSnap(idx){
+  const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
+  const entry=liste[idx];if(!entry)return;
+  const snap=entry.snap;
+  const p=snap?.profil||{};
+  const empList=snap?.employeurs?.list||[];
+  if(!empList.length){toast('Aucun employeur dans le plan d\'action','err');return;}
+  // Remplir le template
+  const name=(p.prenom||'Stagiaire')+' '+(p.nom||'');
+  document.getElementById('pa-name').textContent=name.trim();
+  document.getElementById('pa-date').textContent='Plan du '+new Date().toLocaleDateString('fr-FR');
+  const c=empList.filter(e=>e.steps.contacte).length;
+  const cv=empList.filter(e=>e.steps.cv).length;
+  const ok=empList.filter(e=>e.steps.reponse==='oui').length;
+  document.getElementById('pa-stats').innerHTML=
+    `<div class="pa-stat"><div class="pa-stat-n">${empList.length}</div><div class="pa-stat-l">Employeurs</div></div>`+
+    `<div class="pa-stat"><div class="pa-stat-n" style="color:#1e4dd8">${c}</div><div class="pa-stat-l">Contactés</div></div>`+
+    `<div class="pa-stat"><div class="pa-stat-n" style="color:#e65100">${cv}</div><div class="pa-stat-l">CV envoyés</div></div>`+
+    `<div class="pa-stat"><div class="pa-stat-n" style="color:#2e7d32">${ok}</div><div class="pa-stat-l">Stages confirmés</div></div>`;
+  const cont=document.getElementById('pa-emps');cont.innerHTML='';
+  const stepDefs=[{key:'contacte',lbl:'📞 Contacté'},{key:'cv',lbl:'📄 CV envoyé'},{key:'lm',lbl:'✉️ LM envoyée'}];
+  empList.forEach(emp=>{
+    const rep=emp.steps.reponse;
+    const bc=rep==='oui'?'#2e7d32':rep==='non'?'#c62828':emp.steps.cv?'#1e4dd8':'#999';
+    const stH=stepDefs.map(s=>`<span class="pa-step ${emp.steps[s.key]?'done':'todo'}">${emp.steps[s.key]?'✓ ':''} ${s.lbl}</span>`).join('');
+    const rH=rep==='oui'?'<span class="pa-step oui">✅ Stage accepté</span>':rep==='non'?'<span class="pa-step non">✗ Refusé</span>':rep==='attente'?'<span class="pa-step att">⏳ En attente</span>':'';
+    const sub=[emp.contact?'Contact : '+emp.contact:'',emp.phone||'',emp.email||''].filter(Boolean).join(' · ');
+    const div=document.createElement('div');
+    div.className='pa-emp';div.style.borderLeftColor=bc;
+    div.innerHTML=
+      `<div class="pa-emp-hd"><div class="pa-emp-name">${emp.metierEmoji} ${emp.company} — ${emp.city}</div><span class="pa-emp-tag">${emp.metierName}</span></div>`+
+      (sub?`<div class="pa-emp-sub">${sub}</div>`:'')+
+      `<div class="pa-steps">${stH}${rH}</div>`+
+      (emp.note?`<div class="pa-note">${emp.note}</div>`:'');
+    cont.appendChild(div);
+  });
+  // Ouvrir dans une nouvelle fenêtre
+  const styles=Array.from(document.styleSheets).map(ss=>{try{return Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch(e){return '';}}).join('\n');
+  const content=document.getElementById('print-action').innerHTML;
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Plan d'action — ${name.trim()}</title>
+    <style>
+      body{margin:20px;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;}
+      #print-action{display:block!important;width:190mm;margin:0 auto;background:#fff;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.12);color:#111;font-size:9pt;}
+      @media print{body{margin:0;background:#fff;}#print-action{box-shadow:none;width:100%;}}
+      ${styles}
+    </style>
+  </head><body>
+    <div style="text-align:center;margin-bottom:16px;">
+      <button onclick="window.print()" style="background:#1e4dd8;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;margin-right:8px;">🖨️ Imprimer</button>
+      <button onclick="window.close()" style="background:#eee;color:#333;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">✕ Fermer</button>
+    </div>
+    <div id="print-action">${content}</div>
+  </body></html>`);
+  win.document.close();
 }
 
 async function exportAllPDF(){
