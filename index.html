@@ -75,6 +75,9 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 .home-btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(45,91,227,.6);}
 .home-btn-s{background:rgba(255,255,255,.07);color:#fff;font-size:1rem;font-weight:700;padding:17px 28px;border-radius:14px;border:1.5px solid rgba(255,255,255,.18);cursor:pointer;letter-spacing:.02em;font-family:'Outfit',sans-serif;transition:background .2s,border-color .2s;}
 .home-btn-s:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);}
+.site-btn{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--card-border);border-radius:8px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:background .15s,border-color .15s;}
+.site-btn:hover{background:rgba(255,255,255,.12);}
+.site-btn.active{background:rgba(245,164,35,.18);border-color:#f5a423;color:#f5a423;}
 @keyframes fu{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 /* card */
 .card{background:rgba(10,20,60,.55);border:1px solid rgba(255,255,255,.15);border-radius:var(--r);backdrop-filter:blur(16px);padding:32px 36px;}
@@ -1127,6 +1130,16 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="refreshAdminPanel();loadAdminGlobalView()">🔄 Actualiser</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="changeAdminPin()">🔑 Code admin</button>
         <button class="btn btn-p" style="font-size:.8rem;padding:8px 14px;" onclick="exitAdmin()">✕ Quitter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sélecteur de site global -->
+  <div class="card" style="margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="font-size:.82rem;font-weight:700;color:var(--muted);white-space:nowrap;">📍 Site :</div>
+      <div id="admin-site-btns" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;">
+        <button class="site-btn active" data-site="all" onclick="selectAdminSite('all',this)">Tous</button>
       </div>
     </div>
   </div>
@@ -3086,6 +3099,7 @@ async function checkAdminPin(){
     const r=await fetch(API_URL+'?action=list_formateurs',{headers:{'X-Admin-Pin':pin}});
     if(r.status===403){errEl.textContent='Code admin incorrect.';errEl.style.display='block';return;}
     const formateurs=await r.json();
+    _adminFormateurs=formateurs;
     _adminPin=pin;
     closeFmtModal();
     renderAdminPanel(formateurs);
@@ -3202,9 +3216,23 @@ async function refreshAdminPanel(){
   try{
     const r=await fetch(API_URL+'?action=list_formateurs',{headers:{'X-Admin-Pin':_adminPin}});
     const fmts=await r.json();
-    renderAdminPanel(fmts);
+    _adminFormateurs=fmts;
+    populateAdminSiteBtns();
+    const filtered=_adminSiteView==='all'?fmts:
+      _adminSiteView==='_sans_site'?fmts.filter(f=>!f.site):
+      fmts.filter(f=>(f.site||'')===_adminSiteView);
+    renderAdminPanel(filtered);
     renderAdminStats(fmts,_adminAllStagiaires);
   }catch(e){toast('Erreur réseau','err');}
+}
+
+function populateAdminSiteBtns(){
+  const el=document.getElementById('admin-site-btns');
+  if(!el)return;
+  const siteSet=new Set(_adminFormateurs.filter(f=>f.site).map(f=>f.site));
+  el.innerHTML=`<button class="site-btn${_adminSiteView==='all'?' active':''}" data-site="all" onclick="selectAdminSite('all',this)">Tous</button>`+
+    POINFOR_SITES.filter(s=>siteSet.has(s)).map(s=>`<button class="site-btn${_adminSiteView===s?' active':''}" data-site="${s}" onclick="selectAdminSite('${s}',this)">${s}</button>`).join('')+
+    (_adminFormateurs.some(f=>!f.site)?`<button class="site-btn${_adminSiteView==='_sans_site'?' active':''}" data-site="_sans_site" onclick="selectAdminSite('_sans_site',this)">Non assigné</button>`:'');
 }
 
 function filterAdminSearch(){
@@ -3241,7 +3269,26 @@ function exportAdminCSV(){
 
 const POINFOR_SITES=['Langres','Chaumont','Saint-Dizier','Vitry-le-François','Troyes','Bar-sur-Aube','Migennes','Sens','Auxerre','Gray','Vesoul'];
 let _adminAllStagiaires=[];
+let _adminFormateurs=[];
 let _adminFmtFilter='all';
+let _adminSiteView='all';
+
+function selectAdminSite(site,btn){
+  _adminSiteView=site;
+  _adminFmtFilter=site;
+  document.querySelectorAll('#admin-site-btns .site-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#admin-global-filters .filter-btn').forEach(b=>b.classList.remove('active'));
+  const matchBtn=document.querySelector(`#admin-global-filters .filter-btn[data-site="${site}"]`);
+  if(matchBtn)matchBtn.classList.add('active');
+  const sel=document.getElementById('admin-site-filter');
+  if(sel)sel.value=site;
+  const fmtFiltered=site==='all'?_adminFormateurs:
+    site==='_sans_site'?_adminFormateurs.filter(f=>!f.site):
+    _adminFormateurs.filter(f=>(f.site||'')===site);
+  renderAdminPanel(fmtFiltered);
+  renderAdminGlobal();
+}
 
 async function loadAdminGlobalView(formateurs){
   const listEl=document.getElementById('admin-global-list');
@@ -3269,6 +3316,7 @@ async function loadAdminGlobalView(formateurs){
         return`<button class="filter-btn" data-site="${site}" onclick="filterAdminGlobal('${site}',this)">${site} (${n})</button>`;
       }).join('')+
       (()=>{const n=_adminAllStagiaires.filter(s=>!s._meta?.site).length;return n?`<button class="filter-btn" data-site="_sans_site" onclick="filterAdminGlobal('_sans_site',this)">Non assigné (${n})</button>`:'';})();
+    populateAdminSiteBtns();
     if(formateurs) renderAdminStats(formateurs,_adminAllStagiaires);
   }catch(e){listEl.innerHTML='<div style="color:#f77a7a;padding:16px;">Erreur de chargement</div>';}
 }
