@@ -1065,6 +1065,9 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 
 <!-- ══ ADMIN SCREEN ══ -->
 <div class="scr" id="scr-admin">
+<div style="width:100%;max-width:860px;margin:0 auto;">
+
+  <!-- En-tête -->
   <div class="card" style="margin-bottom:12px;">
     <div class="fmt-badge" style="background:rgba(245,200,66,.15);color:#f5c842;border-color:rgba(245,200,66,.3);">🛡️ Espace Administrateur</div>
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -1073,11 +1076,17 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
         <div style="font-size:.82rem;color:var(--muted);">Seul l'administrateur peut créer ou désactiver des accès formateur.</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="refreshAdminPanel();toast('Actualisé','ok')">🔄 Actualiser</button>
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="exportAdminCSV()">📥 Export CSV</button>
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="refreshAdminPanel();loadAdminGlobalView()">🔄 Actualiser</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="changeAdminPin()">🔑 Code admin</button>
         <button class="btn btn-p" style="font-size:.8rem;padding:8px 14px;" onclick="exitAdmin()">✕ Quitter</button>
       </div>
     </div>
+  </div>
+
+  <!-- Stats globales -->
+  <div class="card" style="margin-bottom:12px;">
+    <div id="admin-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;text-align:center;"></div>
   </div>
 
   <!-- Créer un formateur -->
@@ -1086,30 +1095,32 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
       <input id="adm-prenom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Prénom *">
       <input id="adm-nom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Nom *">
-      <input id="adm-formation" class="ef-inp" style="flex:2;min-width:180px;" placeholder="Nom de la formation (ex: DAQ Bordeaux 2026)">
+      <input id="adm-formation" class="ef-inp" style="flex:2;min-width:200px;" placeholder="Nom de la formation (ex: DAQ Bordeaux 2026)">
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <input id="adm-email" class="ef-inp" type="email" style="flex:1;" placeholder="Email du formateur *">
       <button class="btn btn-p" style="padding:8px 18px;white-space:nowrap;" onclick="createFormateur()">Créer &amp; inviter</button>
     </div>
-    <div style="font-size:.75rem;color:var(--muted);margin-top:8px;">Un code formateur unique est généré automatiquement et envoyé par email. Vous pourrez ensuite créer un code référent depuis la liste.</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:8px;">Code formateur généré automatiquement · Email d'invitation envoyé · Accès référent ajouteable depuis la liste.</div>
   </div>
 
   <!-- Liste des formateurs -->
   <div class="card" style="margin-bottom:12px;">
-    <div style="font-size:.95rem;font-weight:800;margin-bottom:4px;">👨‍🏫 Formateurs</div>
+    <div style="font-size:.95rem;font-weight:800;margin-bottom:10px;">👨‍🏫 Formateurs</div>
     <div id="admin-fmt-list"><div style="text-align:center;padding:24px;color:var(--muted);font-size:.85rem;">⏳ Chargement…</div></div>
   </div>
 
-  <!-- Vue globale — tous les stagiaires -->
+  <!-- Vue globale -->
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-      <div style="font-size:.95rem;font-weight:800;">🌍 Vue globale — tous les stagiaires</div>
-      <button class="btn btn-s" style="font-size:.78rem;padding:6px 14px;" onclick="loadAdminGlobalView()">🔄 Charger</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:.95rem;font-weight:800;">🌍 Tous les stagiaires</div>
+      <input id="admin-search" class="ef-inp" style="max-width:220px;font-size:.8rem;padding:6px 12px;" placeholder="🔍 Rechercher un stagiaire…" oninput="filterAdminSearch()">
     </div>
-    <div id="admin-global-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
-    <div id="admin-global-list"><div style="text-align:center;padding:20px;color:var(--muted);font-size:.82rem;">Cliquez sur "Charger" pour afficher tous les stagiaires.</div></div>
+    <div id="admin-global-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+    <div id="admin-global-list"><div style="text-align:center;padding:20px;color:var(--muted);font-size:.82rem;">⏳ Chargement…</div></div>
   </div>
+
+</div>
 </div>
 
 <!-- ══ BARRE DÉMO (activée par ?demo dans l'URL) ══ -->
@@ -3015,8 +3026,29 @@ async function checkAdminPin(){
     _adminPin=pin;
     closeFmtModal();
     renderAdminPanel(formateurs);
-    go('scr-admin');setStep('Administration');setTitle('Gestion des formateurs');setpg(0);
+    go('scr-admin');setStep('Administration');setTitle('Espace Administrateur');setpg(0);
+    // Charger automatiquement la vue globale
+    loadAdminGlobalView(formateurs);
   }catch(e){errEl.textContent='Erreur réseau.';errEl.style.display='block';}
+}
+
+function renderAdminStats(formateurs,allStagiaires){
+  const statsEl=document.getElementById('admin-stats');if(!statsEl)return;
+  const nbFmt=formateurs.filter(f=>f.actif==1).length;
+  const nbStag=allStagiaires.length;
+  const nbMetiers=allStagiaires.filter(s=>s.etape==='metiers').length;
+  const nbPlan=allStagiaires.filter(s=>s.employeurs?.list?.length>0).length;
+  const nbFormations=[...new Set(formateurs.filter(f=>f.formation).map(f=>f.formation))].length;
+  const stat=(n,l,c='var(--accent)')=>`<div style="padding:10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--card-border);">
+    <div style="font-size:1.6rem;font-weight:900;color:${c};">${n}</div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">${l}</div>
+  </div>`;
+  statsEl.innerHTML=
+    stat(nbFormations,'Formations','#f5c842')+
+    stat(nbFmt,'Formateurs actifs','#6aacff')+
+    stat(nbStag,'Stagiaires total','#fff')+
+    stat(nbMetiers,'Métiers choisis','#4fe08a')+
+    stat(nbPlan,'Plan d\'action','#a78bfa');
 }
 
 function renderAdminPanel(formateurs){
@@ -3024,48 +3056,110 @@ function renderAdminPanel(formateurs){
   if(!formateurs.length){
     listEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Aucun formateur pour l\'instant.</div>';return;
   }
-  // Grouper par formation
   const groups={};
-  formateurs.forEach(f=>{
-    const key=f.formation||'Sans formation';
-    if(!groups[key])groups[key]=[];
-    groups[key].push(f);
-  });
+  formateurs.forEach(f=>{const key=f.formation||'Sans formation';if(!groups[key])groups[key]=[];groups[key].push(f);});
   listEl.innerHTML=Object.entries(groups).map(([formation,fmts])=>`
     <div style="margin-bottom:18px;">
-      <div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(245,200,66,.2);">📚 ${formation}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(245,200,66,.2);">
+        <span style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);">📚 ${formation}</span>
+      </div>
       ${fmts.map(f=>`
       <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--card-border);">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#fff;flex-shrink:0;">${(f.prenom?.[0]||'')+(f.nom?.[0]||'')}</div>
+        <div style="width:40px;height:40px;border-radius:50%;background:${f.actif==1?'linear-gradient(135deg,#3d5af1,#2541c4)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#fff;flex-shrink:0;">${(f.prenom?.[0]||'')+(f.nom?.[0]||'')}</div>
         <div style="flex:1;">
-          <div style="font-weight:700;font-size:.9rem;">${f.prenom} ${f.nom}</div>
+          <div style="font-weight:700;font-size:.9rem;${f.actif!=1?'opacity:.5':''}">${f.prenom} ${f.nom}</div>
           <div style="font-size:.75rem;color:var(--muted);">${f.email}</div>
-          <div style="font-size:.72rem;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;">
-            <span style="color:var(--gold);font-family:monospace;">Formateur : ${f.pin}</span>
-            <span style="color:${f.referent_pin?'#6aacff':'rgba(255,255,255,.3)'};font-family:monospace;">Référent : ${f.referent_pin||'—'}</span>
+          <div style="font-size:.72rem;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;">
+            <span style="color:var(--gold);font-family:monospace;">🔑 ${f.pin}</span>
+            <span style="color:${f.referent_pin?'#6aacff':'rgba(255,255,255,.25)'};font-family:monospace;">👁 ${f.referent_pin||'—'}</span>
           </div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">${f.nb_stagiaires} stagiaire${f.nb_stagiaires!=1?'s':''} · Depuis le ${new Date(f.created_at).toLocaleDateString('fr-FR')}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${f.nb_stagiaires} stagiaire${f.nb_stagiaires!=1?'s':''} · Depuis le ${new Date(f.created_at).toLocaleDateString('fr-FR')}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;">
-          <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${f.actif?'rgba(79,207,142,.15)':'rgba(247,122,122,.12)'};color:${f.actif?'#4fe08a':'#f77a7a'};">${f.actif?'Actif':'Inactif'}</span>
-          ${f.actif?`<button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="setReferentPin('${f.email}','${f.referent_pin||''}')">👁 Référent</button>`:''}
-          ${f.actif?`<button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f77a7a;border-color:rgba(247,122,122,.4);" onclick="deleteFormateur('${f.email}')">Désactiver</button>`:''}
+          <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${f.actif==1?'rgba(79,207,142,.15)':'rgba(247,122,122,.12)'};color:${f.actif==1?'#4fe08a':'#f77a7a'};">${f.actif==1?'Actif':'Inactif'}</span>
+          ${f.actif==1?`
+            <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="editFormation('${f.email}','${(f.formation||'').replace(/'/g,"\\'")}')">✏️ Formation</button>
+            <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="setReferentPin('${f.email}','${f.referent_pin||''}')">👁 Référent</button>
+            <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f77a7a;border-color:rgba(247,122,122,.4);" onclick="deleteFormateur('${f.email}')">Désactiver</button>
+          `:`<button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#4fe08a;border-color:rgba(79,207,142,.4);" onclick="reactivateFormateur('${f.email}')">Réactiver</button>`}
         </div>
       </div>`).join('')}
     </div>`).join('');
 }
 
+async function editFormation(email, current){
+  const n=prompt('Nom de la formation :', current);
+  if(n===null)return;
+  try{
+    const r=await fetch(API_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
+      body:JSON.stringify({action:'set_formation',email,formation:n.trim()})});
+    const d=await r.json();
+    if(d.ok){toast('Formation mise à jour','ok');await refreshAdminPanel();}
+    else toast('Erreur','err');
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+async function reactivateFormateur(email){
+  try{
+    const r=await fetch(API_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
+      body:JSON.stringify({action:'reactivate_formateur',email})});
+    const d=await r.json();
+    if(d.ok){toast('Formateur réactivé','ok');await refreshAdminPanel();}
+    else toast('Erreur','err');
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+async function refreshAdminPanel(){
+  try{
+    const r=await fetch(API_URL+'?action=list_formateurs',{headers:{'X-Admin-Pin':_adminPin}});
+    const fmts=await r.json();
+    renderAdminPanel(fmts);
+    renderAdminStats(fmts,_adminAllStagiaires);
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+function filterAdminSearch(){
+  const q=(document.getElementById('admin-search')?.value||'').toLowerCase().trim();
+  if(!q){renderAdminGlobal();return;}
+  const filtered=_adminAllStagiaires.filter(s=>{
+    const p=s.profil||{};
+    return(p.prenom||s.prenom||'').toLowerCase().includes(q)||(p.nom||s.nom||'').toLowerCase().includes(q)||(p.email||s.email||'').toLowerCase().includes(q);
+  });
+  renderAdminGlobal(filtered);
+}
+
+function exportAdminCSV(){
+  if(!_adminAllStagiaires.length){toast('Chargez d\'abord les stagiaires','err');return;}
+  const rows=[['Prénom','Nom','Email','Formation','Formateur','Étape','QIMI','RIASEC','Métiers','Employeurs','Dernière activité']];
+  _adminAllStagiaires.forEach(s=>{
+    const p=s.profil||{};
+    const top3q=s.qimi?.top3?.join('-')||'';
+    const top3r=s.riasec?.top3?.join('')||'';
+    const nbM=s.metiers?.selected?.length||0;
+    const nbE=s.employeurs?.list?.length||0;
+    const date=s._meta?.updated_at?new Date(s._meta.updated_at).toLocaleDateString('fr-FR'):'';
+    rows.push([p.prenom||s.prenom||'',p.nom||s.nom||'',p.email||s.email||'',s._meta?.formation||'',
+      (s._meta?.fmt_prenom||'')+' '+(s._meta?.fmt_nom||''),s.etape||'',top3q,top3r,nbM,nbE,date]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='stagiaires_parcours_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();toast('Export CSV téléchargé','ok');
+}
+
 let _adminAllStagiaires=[];
 let _adminFmtFilter='all';
 
-async function loadAdminGlobalView(){
+async function loadAdminGlobalView(formateurs){
   const listEl=document.getElementById('admin-global-list');
   listEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">⏳ Chargement…</div>';
   try{
     const r=await fetch(API_URL+'?action=all_stagiaires',{headers:{'X-Admin-Pin':_adminPin}});
     _adminAllStagiaires=await r.json();
     renderAdminGlobal();
-    // Construire les filtres formation/formateur
     const formations=[...new Set(_adminAllStagiaires.map(s=>s._meta?.formation||'Sans formation'))];
     const filtersEl=document.getElementById('admin-global-filters');
     filtersEl.innerHTML=`<button class="filter-btn active" onclick="filterAdminGlobal('all',this)">Toutes (${_adminAllStagiaires.length})</button>`+
@@ -3073,6 +3167,7 @@ async function loadAdminGlobalView(){
         const n=_adminAllStagiaires.filter(s=>(s._meta?.formation||'Sans formation')===f).length;
         return`<button class="filter-btn" onclick="filterAdminGlobal('${f.replace(/'/g,"\\'")}',this)">${f} (${n})</button>`;
       }).join('');
+    if(formateurs) renderAdminStats(formateurs,_adminAllStagiaires);
   }catch(e){listEl.innerHTML='<div style="color:#f77a7a;padding:16px;">Erreur de chargement</div>';}
 }
 
@@ -3083,11 +3178,13 @@ function filterAdminGlobal(formation,btn){
   renderAdminGlobal();
 }
 
-function renderAdminGlobal(){
+function renderAdminGlobal(data){
   const listEl=document.getElementById('admin-global-list');
-  const filtered=_adminFmtFilter==='all'?_adminAllStagiaires:_adminAllStagiaires.filter(s=>(s._meta?.formation||'Sans formation')===_adminFmtFilter);
+  const filtered=data||(
+    _adminFmtFilter==='all'?_adminAllStagiaires:
+    _adminAllStagiaires.filter(s=>(s._meta?.formation||'Sans formation')===_adminFmtFilter)
+  );
   if(!filtered.length){listEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Aucun stagiaire</div>';return;}
-  // Grouper par formation puis formateur
   const groups={};
   filtered.forEach(s=>{
     const key=(s._meta?.formation||'Sans formation')+' — '+(s._meta?.fmt_prenom||'')+(s._meta?.fmt_nom?' '+s._meta.fmt_nom:'');
@@ -3097,19 +3194,23 @@ function renderAdminGlobal(){
   const etapeIcon=e=>e==='metiers'?'🎯':e==='riasec'?'🔬':e==='qimi'?'📊':e==='profil'?'👤':'⏳';
   listEl.innerHTML=Object.entries(groups).map(([grp,stags])=>`
     <div style="margin-bottom:16px;">
-      <div style="font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;">📚 ${grp}</div>
+      <div style="font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(245,200,66,.2);">📚 ${grp}</div>
       ${stags.map(s=>{
         const p=s.profil||{};const etape=s.etape||'';
-        const qd=s.qimi;const rd=s.riasec;const md=s.metiers;const empN=s.employeurs?.list?.length||0;
-        return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);cursor:pointer;" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:qd,riasec:rd,metiers:md,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
+        const empN=s.employeurs?.list?.length||0;
+        const dot=etape==='metiers'?'#4fe08a':etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':'rgba(255,255,255,.2)';
+        return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:s.qimi,riasec:s.riasec,metiers:s.metiers,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
           <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:#fff;flex-shrink:0;">${(p.prenom?.[0]||'?')+(p.nom?.[0]||'')}</div>
           <div style="flex:1;">
             <div style="font-weight:700;font-size:.88rem;">${p.prenom||s.prenom||'—'} ${p.nom||s.nom||''}</div>
             <div style="font-size:.72rem;color:var(--muted);">${p.email||''}</div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:.75rem;font-weight:700;">${etapeIcon(etape)} ${etape||'Non démarré'}</div>
-            <div style="font-size:.7rem;color:var(--muted);">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;">
+              <span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></span>
+              <span style="font-size:.75rem;font-weight:700;">${etapeIcon(etape)} ${etape||'Non démarré'}</span>
+            </div>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
           </div>
         </div>`;
       }).join('')}
@@ -3119,23 +3220,13 @@ function renderAdminGlobal(){
 function showAdminStagiaireDetail(el){
   try{
     const snap=JSON.parse(el.dataset.snap);
-    const idx=-1;
-    // Réutiliser showStagiaireDetail en injectant dans profils_liste temporairement
     const tmp=JSON.parse(localStorage.getItem('profils_liste')||'[]');
     const entry={snap,savedAt:new Date().toISOString()};
     tmp.unshift(entry);
     localStorage.setItem('profils_liste',JSON.stringify(tmp));
     showStagiaireDetail(0);
-    // Nettoyer après ouverture
     setTimeout(()=>{tmp.shift();localStorage.setItem('profils_liste',JSON.stringify(tmp));},500);
   }catch(e){toast('Erreur affichage','err');}
-}
-
-async function refreshAdminPanel(){
-  try{
-    const r=await fetch(API_URL+'?action=list_formateurs',{headers:{'X-Admin-Pin':_adminPin}});
-    renderAdminPanel(await r.json());
-  }catch(e){toast('Erreur réseau','err');}
 }
 
 async function createFormateur(){
