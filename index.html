@@ -65,8 +65,9 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 .scr.active > .card{width:100%;}
 /* home screen */
 #scr-home{max-width:100%;padding:0;}
-#scr-home.active{display:flex;flex-direction:column;min-height:calc(100vh - var(--th));background:radial-gradient(ellipse at 50% 38%,#1a3a7a 0%,#0a1535 52%,#060d20 100%);}
+#scr-home.active{display:flex;flex-direction:column;min-height:calc(100vh - var(--th));}
 #home-inner{position:relative;width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#home-inner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(10,14,39,.55) 0%,transparent 68%);pointer-events:none;z-index:1;}
 .home-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:1px solid rgba(80,140,255,.09);border-radius:50%;pointer-events:none;}
 .home-kw{position:absolute;color:#fff;font-weight:800;letter-spacing:.06em;pointer-events:none;text-transform:uppercase;font-family:'Outfit',sans-serif;user-select:none;}
 #home-cta{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;padding:40px 24px;}
@@ -487,13 +488,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 <!-- ══ HOME ══ -->
 <div class="scr" id="scr-home">
 <div id="home-inner">
-  <div class="home-ring" style="width:180px;height:180px;"></div>
-  <div class="home-ring" style="width:360px;height:360px;"></div>
-  <div class="home-ring" style="width:540px;height:540px;"></div>
-  <div class="home-ring" style="width:720px;height:720px;"></div>
-  <div class="home-ring" style="width:900px;height:900px;"></div>
-  <div class="home-ring" style="width:1080px;height:1080px;"></div>
-  <span class="home-kw" style="top:12%;left:5%;font-size:1.9rem;opacity:.15;transform:rotate(-5deg)">EMPLOI</span>
+<span class="home-kw" style="top:12%;left:5%;font-size:1.9rem;opacity:.15;transform:rotate(-5deg)">EMPLOI</span>
   <span class="home-kw" style="top:28%;left:1%;font-size:1.4rem;opacity:.11;transform:rotate(-8deg)">FORMATION</span>
   <span class="home-kw" style="top:56%;left:2%;font-size:1.25rem;opacity:.10;transform:rotate(-3deg)">CV</span>
   <span class="home-kw" style="bottom:22%;left:4%;font-size:1.5rem;opacity:.11;transform:rotate(5deg)">ENTREPRISE</span>
