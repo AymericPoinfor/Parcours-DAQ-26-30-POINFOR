@@ -69,7 +69,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 #home-inner{position:relative;width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 #home-inner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(10,14,39,.55) 0%,transparent 68%);pointer-events:none;z-index:1;}
 .home-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:1px solid rgba(80,140,255,.09);border-radius:50%;pointer-events:none;}
-.home-kw{position:absolute;color:#fff;font-weight:800;letter-spacing:.06em;pointer-events:none;text-transform:uppercase;font-family:'Outfit',sans-serif;user-select:none;}
+.home-kw{position:absolute;color:rgba(160,205,255,.7);font-weight:600;font-size:.72rem;letter-spacing:.05em;pointer-events:none;font-family:'Outfit',sans-serif;user-select:none;background:rgba(80,140,255,.09);border:1px solid rgba(120,170,255,.22);border-radius:20px;padding:5px 14px;white-space:nowrap;}
 #home-cta{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;padding:40px 24px;}
 .home-btn-p{background:linear-gradient(135deg,#2d5be3 0%,#1a3a8c 100%);color:#fff;font-size:1rem;font-weight:700;padding:17px 28px;border-radius:14px;border:none;cursor:pointer;letter-spacing:.02em;box-shadow:0 6px 28px rgba(45,91,227,.45);font-family:'Outfit',sans-serif;transition:transform .15s,box-shadow .15s;}
 .home-btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(45,91,227,.6);}
@@ -488,15 +488,25 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 <!-- ══ HOME ══ -->
 <div class="scr" id="scr-home">
 <div id="home-inner">
-<span class="home-kw" style="top:12%;left:5%;font-size:1.9rem;opacity:.15;transform:rotate(-5deg)">EMPLOI</span>
-  <span class="home-kw" style="top:28%;left:1%;font-size:1.4rem;opacity:.11;transform:rotate(-8deg)">FORMATION</span>
-  <span class="home-kw" style="top:56%;left:2%;font-size:1.25rem;opacity:.10;transform:rotate(-3deg)">CV</span>
-  <span class="home-kw" style="bottom:22%;left:4%;font-size:1.5rem;opacity:.11;transform:rotate(5deg)">ENTREPRISE</span>
-  <span class="home-kw" style="top:8%;right:3%;font-size:1.2rem;opacity:.13;transform:rotate(4deg)">AUTONOMIE</span>
-  <span class="home-kw" style="top:20%;right:1%;font-size:1.55rem;opacity:.15;transform:rotate(6deg)">COMPÉTENCES</span>
-  <span class="home-kw" style="top:44%;right:2%;font-size:1.45rem;opacity:.13;transform:rotate(-4deg)">ENTRETIEN</span>
-  <span class="home-kw" style="bottom:24%;right:4%;font-size:1.6rem;opacity:.12;transform:rotate(3deg)">MOTIVATION</span>
-  <span class="home-kw" style="bottom:12%;left:50%;transform:translateX(-50%) rotate(1deg);font-size:1.1rem;opacity:.10">RÉSEAU</span>
+  <span class="home-kw" style="top:7%;left:3%">Emploi</span>
+  <span class="home-kw" style="top:18%;left:5%">Formation</span>
+  <span class="home-kw" style="top:31%;left:2%">Stage</span>
+  <span class="home-kw" style="top:48%;left:1%">Entreprise</span>
+  <span class="home-kw" style="top:62%;left:3%">Recrutement</span>
+  <span class="home-kw" style="bottom:20%;left:5%">Confiance</span>
+  <span class="home-kw" style="bottom:9%;left:4%">Expérience</span>
+  <span class="home-kw" style="top:5%;right:2%">Autonomie</span>
+  <span class="home-kw" style="top:16%;right:1%">Compétences</span>
+  <span class="home-kw" style="top:30%;right:3%">Entretien</span>
+  <span class="home-kw" style="top:46%;right:2%">Motivation</span>
+  <span class="home-kw" style="top:60%;right:1%">Mobilité</span>
+  <span class="home-kw" style="bottom:22%;right:3%">Qualification</span>
+  <span class="home-kw" style="bottom:10%;right:4%">Accompagnement</span>
+  <span class="home-kw" style="top:3%;left:28%">CV</span>
+  <span class="home-kw" style="top:3%;right:22%">Réseau</span>
+  <span class="home-kw" style="top:3%;left:46%">Orientation</span>
+  <span class="home-kw" style="bottom:5%;left:32%">Parcours</span>
+  <span class="home-kw" style="bottom:5%;right:28%">Projet</span>
   <div id="home-cta">
     <img id="home-logo" alt="POINFOR" style="height:88px;margin-bottom:28px;filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 14px rgba(255,255,255,.9)) drop-shadow(0 0 40px rgba(255,255,255,.5));">
     <div style="font-size:.88rem;font-weight:700;color:#f5a423;letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px;">Bilan d'orientation professionnelle</div>
