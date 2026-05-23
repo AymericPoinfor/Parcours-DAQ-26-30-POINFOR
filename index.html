@@ -1166,9 +1166,15 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 
   <!-- Vue globale -->
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div style="font-size:.95rem;font-weight:800;">🌍 Tous les stagiaires</div>
-      <input id="admin-search" class="ef-inp" style="max-width:220px;font-size:.8rem;padding:6px 12px;" placeholder="🔍 Rechercher un stagiaire…" oninput="filterAdminSearch()">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="admin-site-filter" class="ef-inp" style="font-size:.82rem;padding:6px 12px;min-width:180px;" onchange="filterAdminBySiteDropdown()">
+          <option value="all">📍 Tous les sites</option>
+          <option value="_sans_site">Non assigné</option>
+        </select>
+        <input id="admin-search" class="ef-inp" style="max-width:200px;font-size:.8rem;padding:6px 12px;" placeholder="🔍 Rechercher…" oninput="filterAdminSearch()">
+      </div>
     </div>
     <div id="admin-global-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
     <div id="admin-global-list"><div style="text-align:center;padding:20px;color:var(--muted);font-size:.82rem;">⏳ Chargement…</div></div>
@@ -3244,22 +3250,44 @@ async function loadAdminGlobalView(formateurs){
     const r=await fetch(API_URL+'?action=all_stagiaires',{headers:{'X-Admin-Pin':_adminPin}});
     _adminAllStagiaires=await r.json();
     renderAdminGlobal();
+    // Peupler le dropdown et les boutons de filtre
+    const sel=document.getElementById('admin-site-filter');
+    if(sel){
+      sel.innerHTML=`<option value="all">📍 Tous les sites (${_adminAllStagiaires.length})</option>`;
+      POINFOR_SITES.forEach(site=>{
+        const n=_adminAllStagiaires.filter(s=>(s._meta?.site||'')===site).length;
+        if(n)sel.innerHTML+=`<option value="${site}">${site} (${n})</option>`;
+      });
+      const nSans=_adminAllStagiaires.filter(s=>!s._meta?.site).length;
+      if(nSans)sel.innerHTML+=`<option value="_sans_site">Non assigné (${nSans})</option>`;
+    }
     const filtersEl=document.getElementById('admin-global-filters');
-    filtersEl.innerHTML=`<button class="filter-btn active" onclick="filterAdminGlobal('all',this)">Tous (${_adminAllStagiaires.length})</button>`+
+    filtersEl.innerHTML=`<button class="filter-btn active" data-site="all" onclick="filterAdminGlobal('all',this)">Tous (${_adminAllStagiaires.length})</button>`+
       POINFOR_SITES.map(site=>{
         const n=_adminAllStagiaires.filter(s=>(s._meta?.site||'')===site).length;
         if(!n)return'';
-        return`<button class="filter-btn" onclick="filterAdminGlobal('${site}',this)">${site} (${n})</button>`;
+        return`<button class="filter-btn" data-site="${site}" onclick="filterAdminGlobal('${site}',this)">${site} (${n})</button>`;
       }).join('')+
-      (()=>{const n=_adminAllStagiaires.filter(s=>!s._meta?.site).length;return n?`<button class="filter-btn" onclick="filterAdminGlobal('_sans_site',this)">Non assigné (${n})</button>`:'';})();
+      (()=>{const n=_adminAllStagiaires.filter(s=>!s._meta?.site).length;return n?`<button class="filter-btn" data-site="_sans_site" onclick="filterAdminGlobal('_sans_site',this)">Non assigné (${n})</button>`:'';})();
     if(formateurs) renderAdminStats(formateurs,_adminAllStagiaires);
   }catch(e){listEl.innerHTML='<div style="color:#f77a7a;padding:16px;">Erreur de chargement</div>';}
+}
+
+function filterAdminBySiteDropdown(){
+  const sel=document.getElementById('admin-site-filter');
+  _adminFmtFilter=sel.value;
+  document.querySelectorAll('#admin-global-filters .filter-btn').forEach(b=>b.classList.remove('active'));
+  const matchBtn=document.querySelector(`#admin-global-filters .filter-btn[data-site="${sel.value}"]`);
+  if(matchBtn)matchBtn.classList.add('active');
+  renderAdminGlobal();
 }
 
 function filterAdminGlobal(site,btn){
   _adminFmtFilter=site;
   document.querySelectorAll('#admin-global-filters .filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  const sel=document.getElementById('admin-site-filter');
+  if(sel)sel.value=site;
   renderAdminGlobal();
 }
 
