@@ -63,6 +63,17 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 .scr.flex-scr.active{align-items:center;text-align:center;}
 #scr-admin.active{display:block;}
 .scr.active > .card{width:100%;}
+/* home screen */
+#scr-home{max-width:100%;padding:0;}
+#scr-home.active{display:flex;flex-direction:column;min-height:calc(100vh - var(--th));background:radial-gradient(ellipse at 50% 38%,#1a3a7a 0%,#0a1535 52%,#060d20 100%);}
+#home-inner{position:relative;width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.home-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:1px solid rgba(80,140,255,.09);border-radius:50%;pointer-events:none;}
+.home-kw{position:absolute;color:#fff;font-weight:800;letter-spacing:.06em;pointer-events:none;text-transform:uppercase;font-family:'Outfit',sans-serif;user-select:none;}
+#home-cta{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;padding:40px 24px;}
+.home-btn-p{background:linear-gradient(135deg,#2d5be3 0%,#1a3a8c 100%);color:#fff;font-size:1rem;font-weight:700;padding:17px 28px;border-radius:14px;border:none;cursor:pointer;letter-spacing:.02em;box-shadow:0 6px 28px rgba(45,91,227,.45);font-family:'Outfit',sans-serif;transition:transform .15s,box-shadow .15s;}
+.home-btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(45,91,227,.6);}
+.home-btn-s{background:rgba(255,255,255,.07);color:#fff;font-size:1rem;font-weight:700;padding:17px 28px;border-radius:14px;border:1.5px solid rgba(255,255,255,.18);cursor:pointer;letter-spacing:.02em;font-family:'Outfit',sans-serif;transition:background .2s,border-color .2s;}
+.home-btn-s:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);}
 @keyframes fu{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 /* card */
 .card{background:rgba(10,20,60,.55);border:1px solid rgba(255,255,255,.15);border-radius:var(--r);backdrop-filter:blur(16px);padding:32px 36px;}
@@ -471,6 +482,37 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div class="inv-title">Lien d'invitation invalide</div>
     <div class="inv-sub">Ce lien ne correspond à aucune invitation active. Contactez votre formateur pour recevoir un nouveau lien.</div>
   </div>
+</div>
+
+<!-- ══ HOME ══ -->
+<div class="scr" id="scr-home">
+<div id="home-inner">
+  <div class="home-ring" style="width:180px;height:180px;"></div>
+  <div class="home-ring" style="width:360px;height:360px;"></div>
+  <div class="home-ring" style="width:540px;height:540px;"></div>
+  <div class="home-ring" style="width:720px;height:720px;"></div>
+  <div class="home-ring" style="width:900px;height:900px;"></div>
+  <div class="home-ring" style="width:1080px;height:1080px;"></div>
+  <span class="home-kw" style="top:12%;left:5%;font-size:1.9rem;opacity:.15;transform:rotate(-5deg)">EMPLOI</span>
+  <span class="home-kw" style="top:28%;left:1%;font-size:1.4rem;opacity:.11;transform:rotate(-8deg)">FORMATION</span>
+  <span class="home-kw" style="top:56%;left:2%;font-size:1.25rem;opacity:.10;transform:rotate(-3deg)">CV</span>
+  <span class="home-kw" style="bottom:22%;left:4%;font-size:1.5rem;opacity:.11;transform:rotate(5deg)">ENTREPRISE</span>
+  <span class="home-kw" style="top:8%;right:3%;font-size:1.2rem;opacity:.13;transform:rotate(4deg)">AUTONOMIE</span>
+  <span class="home-kw" style="top:20%;right:1%;font-size:1.55rem;opacity:.15;transform:rotate(6deg)">COMPÉTENCES</span>
+  <span class="home-kw" style="top:44%;right:2%;font-size:1.45rem;opacity:.13;transform:rotate(-4deg)">ENTRETIEN</span>
+  <span class="home-kw" style="bottom:24%;right:4%;font-size:1.6rem;opacity:.12;transform:rotate(3deg)">MOTIVATION</span>
+  <span class="home-kw" style="bottom:12%;left:50%;transform:translateX(-50%) rotate(1deg);font-size:1.1rem;opacity:.10">RÉSEAU</span>
+  <div id="home-cta">
+    <img id="home-logo" alt="POINFOR" style="height:88px;margin-bottom:28px;filter:drop-shadow(0 0 16px rgba(255,255,255,.35)) drop-shadow(0 0 40px rgba(100,160,255,.2));">
+    <div style="font-size:.88rem;font-weight:700;color:#f5a423;letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px;">Bilan d'orientation professionnelle</div>
+    <div style="font-size:.8rem;color:rgba(255,255,255,.38);max-width:300px;line-height:1.8;margin-bottom:44px;">Découvrez votre profil, explorez vos compétences<br>et construisez votre projet professionnel.</div>
+    <div style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:300px;">
+      <button class="home-btn-p" onclick="go('scr-access')">🎓 Accéder à mon parcours</button>
+      <button class="home-btn-s" onclick="openFormateurLogin()">👨‍🏫 Espace formateur</button>
+    </div>
+    <button onclick="openAdminLogin()" style="margin-top:36px;background:none;border:none;color:rgba(255,255,255,.08);font-size:.62rem;cursor:pointer;letter-spacing:.1em;font-family:'Outfit',sans-serif;">ADMINISTRATION</button>
+  </div>
+</div>
 </div>
 
 <!-- ══ ACCÈS STAGIAIRE ══ -->
@@ -1209,6 +1251,10 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
 // ══════════════════════════════════════════
 (function init(){
   const p=new URLSearchParams(window.location.search);
+  // Copie le logo topbar vers la page d'accueil (évite de dupliquer le base64)
+  const tbLogo=document.getElementById('tb-logo-img');
+  const homeLogo=document.getElementById('home-logo');
+  if(tbLogo&&homeLogo) homeLogo.src=tbLogo.src;
   go('scr-welcome');setpg(5);
   const saved=localStorage.getItem('parcours_profil');
   if(saved) try{Object.assign(st,JSON.parse(saved));}catch(e){}
@@ -1239,8 +1285,7 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   // Vérification code d'accès — obligatoire à chaque nouvelle session navigateur
   const authenticated=sessionStorage.getItem('stagiaire_auth')==='1';
   if(!authenticated){
-    go('scr-access');
-    setTimeout(()=>document.getElementById('access-inp')?.focus(),200);
+    go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');
     return;
   }
   // Déjà authentifié cette session → modale reprise si données
@@ -2993,7 +3038,7 @@ let _autoRefresh=null;
 function exitFormateur(){
   clearInterval(_autoRefresh);_autoRefresh=null;
   _fmtPin='';_fmtFmt=null;
-  go('scr-welcome');setpg(5);setStep('Étape 1 / 5');setTitle('Plateforme d\'insertion');
+  go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');
 }
 
 // ══════════════════════════════════════════
@@ -3297,7 +3342,7 @@ async function changeAdminPin(){
 
 function exitAdmin(){
   _adminPin='';
-  go('scr-welcome');setpg(5);setStep('Étape 1 / 5');setTitle('Plateforme d\'insertion');
+  go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');
 }
 
 function setFormateurEmail(){
