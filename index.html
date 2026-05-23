@@ -1142,7 +1142,14 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
       <input id="adm-prenom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Prénom *">
       <input id="adm-nom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Nom *">
-      <input id="adm-formation" class="ef-inp" style="flex:2;min-width:200px;" placeholder="Nom de la formation (ex: DAQ Bordeaux 2026)">
+      <select id="adm-site" class="ef-inp" style="flex:1;min-width:140px;">
+        <option value="">Site POINFOR *</option>
+        <option>Langres</option><option>Chaumont</option><option>Saint-Dizier</option>
+        <option>Vitry-le-François</option><option>Troyes</option><option>Bar-sur-Aube</option>
+        <option>Migennes</option><option>Sens</option><option>Auxerre</option>
+        <option>Gray</option><option>Vesoul</option>
+      </select>
+      <input id="adm-formation" class="ef-inp" style="flex:2;min-width:200px;" placeholder="Nom de la formation (ex: DAQ 2026)">
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <input id="adm-email" class="ef-inp" type="email" style="flex:1;" placeholder="Email du formateur *">
@@ -3106,35 +3113,59 @@ function renderAdminPanel(formateurs){
   if(!formateurs.length){
     listEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Aucun formateur pour l\'instant.</div>';return;
   }
-  const groups={};
-  formateurs.forEach(f=>{const key=f.formation||'Sans formation';if(!groups[key])groups[key]=[];groups[key].push(f);});
-  listEl.innerHTML=Object.entries(groups).map(([formation,fmts])=>`
-    <div style="margin-bottom:18px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(245,200,66,.2);">
-        <span style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);">📚 ${formation}</span>
-      </div>
-      ${fmts.map(f=>`
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--card-border);">
-        <div style="width:40px;height:40px;border-radius:50%;background:${f.actif==1?'linear-gradient(135deg,#3d5af1,#2541c4)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#fff;flex-shrink:0;">${(f.prenom?.[0]||'')+(f.nom?.[0]||'')}</div>
-        <div style="flex:1;">
-          <div style="font-weight:700;font-size:.9rem;${f.actif!=1?'opacity:.5':''}">${f.prenom} ${f.nom}</div>
-          <div style="font-size:.75rem;color:var(--muted);">${f.email}</div>
-          <div style="font-size:.72rem;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;">
-            <span style="color:var(--gold);font-family:monospace;">🔑 ${f.pin}</span>
-            <span style="color:${f.referent_pin?'#6aacff':'rgba(255,255,255,.25)'};font-family:monospace;">👁 ${f.referent_pin||'—'}</span>
-          </div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${f.nb_stagiaires} stagiaire${f.nb_stagiaires!=1?'s':''} · Depuis le ${new Date(f.created_at).toLocaleDateString('fr-FR')}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;">
-          <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${f.actif==1?'rgba(79,207,142,.15)':'rgba(247,122,122,.12)'};color:${f.actif==1?'#4fe08a':'#f77a7a'};">${f.actif==1?'Actif':'Inactif'}</span>
-          ${f.actif==1?`
-            <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="editFormation('${f.email}','${(f.formation||'').replace(/'/g,"\\'")}')">✏️ Formation</button>
-            <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="setReferentPin('${f.email}','${f.referent_pin||''}')">👁 Référent</button>
-            <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f77a7a;border-color:rgba(247,122,122,.4);" onclick="deleteFormateur('${f.email}')">Désactiver</button>
-          `:`<button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#4fe08a;border-color:rgba(79,207,142,.4);" onclick="reactivateFormateur('${f.email}')">Réactiver</button>`}
-        </div>
-      </div>`).join('')}
+  const siteGroups={};
+  formateurs.forEach(f=>{
+    const s=f.site||'Non assigné';
+    const k=f.formation||'Sans formation';
+    if(!siteGroups[s])siteGroups[s]={};
+    if(!siteGroups[s][k])siteGroups[s][k]=[];
+    siteGroups[s][k].push(f);
+  });
+  listEl.innerHTML=Object.entries(siteGroups).map(([site,fGroups])=>`
+    <div style="margin-bottom:20px;">
+      <div style="font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#f5a423;padding:6px 10px;background:rgba(245,164,35,.08);border-left:3px solid #f5a423;border-radius:0 6px 6px 0;margin-bottom:10px;">📍 ${site}</div>
+      ${Object.entries(fGroups).map(([formation,fmts])=>`
+        <div style="margin-bottom:14px;padding-left:10px;">
+          <div style="font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(245,200,66,.15);">📚 ${formation}</div>
+          ${fmts.map(f=>`
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--card-border);">
+            <div style="width:40px;height:40px;border-radius:50%;background:${f.actif==1?'linear-gradient(135deg,#3d5af1,#2541c4)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#fff;flex-shrink:0;">${(f.prenom?.[0]||'')+(f.nom?.[0]||'')}</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:.9rem;${f.actif!=1?'opacity:.5':''}">${f.prenom} ${f.nom}</div>
+              <div style="font-size:.75rem;color:var(--muted);">${f.email}</div>
+              <div style="font-size:.72rem;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;">
+                <span style="color:var(--gold);font-family:monospace;">🔑 ${f.pin}</span>
+                <span style="color:${f.referent_pin?'#6aacff':'rgba(255,255,255,.25)'};font-family:monospace;">👁 ${f.referent_pin||'—'}</span>
+              </div>
+              <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${f.nb_stagiaires} stagiaire${f.nb_stagiaires!=1?'s':''} · Depuis le ${new Date(f.created_at).toLocaleDateString('fr-FR')}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;">
+              <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${f.actif==1?'rgba(79,207,142,.15)':'rgba(247,122,122,.12)'};color:${f.actif==1?'#4fe08a':'#f77a7a'};">${f.actif==1?'Actif':'Inactif'}</span>
+              ${f.actif==1?`
+                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="editSite('${f.email}','${(f.site||'').replace(/'/g,"\\'")}')">📍 Site</button>
+                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="editFormation('${f.email}','${(f.formation||'').replace(/'/g,"\\'")}')">✏️ Formation</button>
+                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="setReferentPin('${f.email}','${f.referent_pin||''}')">👁 Référent</button>
+                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f77a7a;border-color:rgba(247,122,122,.4);" onclick="deleteFormateur('${f.email}')">Désactiver</button>
+              `:`<button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#4fe08a;border-color:rgba(79,207,142,.4);" onclick="reactivateFormateur('${f.email}')">Réactiver</button>`}
+            </div>
+          </div>`).join('')}
+        </div>`).join('')}
     </div>`).join('');
+}
+
+async function editSite(email, current){
+  const opts=POINFOR_SITES.map((s,i)=>`${i+1}. ${s}`).join('\n');
+  const n=prompt(`Site POINFOR pour ${email}\n\n${opts}\n\nSaisissez le nom exact du site :`,current);
+  if(n===null)return;
+  const site=POINFOR_SITES.find(s=>s.toLowerCase()===n.trim().toLowerCase())||n.trim();
+  try{
+    const r=await fetch(API_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
+      body:JSON.stringify({action:'set_site',email,site})});
+    const d=await r.json();
+    if(d.ok){toast(`✅ Site : ${site||'(retiré)'}` ,'ok');await refreshAdminPanel();}
+    else toast('Erreur','err');
+  }catch(e){toast('Erreur réseau','err');}
 }
 
 async function editFormation(email, current){
@@ -3182,7 +3213,7 @@ function filterAdminSearch(){
 
 function exportAdminCSV(){
   if(!_adminAllStagiaires.length){toast('Chargez d\'abord les stagiaires','err');return;}
-  const rows=[['Prénom','Nom','Email','Formation','Formateur','Étape','QIMI','RIASEC','Métiers','Employeurs','Dernière activité']];
+  const rows=[['Site','Formation','Formateur','Prénom','Nom','Email','Étape','QIMI','RIASEC','Métiers','Employeurs','Dernière activité']];
   _adminAllStagiaires.forEach(s=>{
     const p=s.profil||{};
     const top3q=s.qimi?.top3?.join('-')||'';
@@ -3190,8 +3221,10 @@ function exportAdminCSV(){
     const nbM=s.metiers?.selected?.length||0;
     const nbE=s.employeurs?.list?.length||0;
     const date=s._meta?.updated_at?new Date(s._meta.updated_at).toLocaleDateString('fr-FR'):'';
-    rows.push([p.prenom||s.prenom||'',p.nom||s.nom||'',p.email||s.email||'',s._meta?.formation||'',
-      (s._meta?.fmt_prenom||'')+' '+(s._meta?.fmt_nom||''),s.etape||'',top3q,top3r,nbM,nbE,date]);
+    rows.push([s._meta?.site||'',s._meta?.formation||'',
+      (s._meta?.fmt_prenom||'')+' '+(s._meta?.fmt_nom||''),
+      p.prenom||s.prenom||'',p.nom||s.nom||'',p.email||s.email||'',
+      s.etape||'',top3q,top3r,nbM,nbE,date]);
   });
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
@@ -3200,6 +3233,7 @@ function exportAdminCSV(){
   a.click();toast('Export CSV téléchargé','ok');
 }
 
+const POINFOR_SITES=['Langres','Chaumont','Saint-Dizier','Vitry-le-François','Troyes','Bar-sur-Aube','Migennes','Sens','Auxerre','Gray','Vesoul'];
 let _adminAllStagiaires=[];
 let _adminFmtFilter='all';
 
@@ -3210,19 +3244,20 @@ async function loadAdminGlobalView(formateurs){
     const r=await fetch(API_URL+'?action=all_stagiaires',{headers:{'X-Admin-Pin':_adminPin}});
     _adminAllStagiaires=await r.json();
     renderAdminGlobal();
-    const formations=[...new Set(_adminAllStagiaires.map(s=>s._meta?.formation||'Sans formation'))];
     const filtersEl=document.getElementById('admin-global-filters');
-    filtersEl.innerHTML=`<button class="filter-btn active" onclick="filterAdminGlobal('all',this)">Toutes (${_adminAllStagiaires.length})</button>`+
-      formations.map(f=>{
-        const n=_adminAllStagiaires.filter(s=>(s._meta?.formation||'Sans formation')===f).length;
-        return`<button class="filter-btn" onclick="filterAdminGlobal('${f.replace(/'/g,"\\'")}',this)">${f} (${n})</button>`;
-      }).join('');
+    filtersEl.innerHTML=`<button class="filter-btn active" onclick="filterAdminGlobal('all',this)">Tous (${_adminAllStagiaires.length})</button>`+
+      POINFOR_SITES.map(site=>{
+        const n=_adminAllStagiaires.filter(s=>(s._meta?.site||'')===site).length;
+        if(!n)return'';
+        return`<button class="filter-btn" onclick="filterAdminGlobal('${site}',this)">${site} (${n})</button>`;
+      }).join('')+
+      (()=>{const n=_adminAllStagiaires.filter(s=>!s._meta?.site).length;return n?`<button class="filter-btn" onclick="filterAdminGlobal('_sans_site',this)">Non assigné (${n})</button>`:'';})();
     if(formateurs) renderAdminStats(formateurs,_adminAllStagiaires);
   }catch(e){listEl.innerHTML='<div style="color:#f77a7a;padding:16px;">Erreur de chargement</div>';}
 }
 
-function filterAdminGlobal(formation,btn){
-  _adminFmtFilter=formation;
+function filterAdminGlobal(site,btn){
+  _adminFmtFilter=site;
   document.querySelectorAll('#admin-global-filters .filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderAdminGlobal();
@@ -3232,38 +3267,41 @@ function renderAdminGlobal(data){
   const listEl=document.getElementById('admin-global-list');
   const filtered=data||(
     _adminFmtFilter==='all'?_adminAllStagiaires:
-    _adminAllStagiaires.filter(s=>(s._meta?.formation||'Sans formation')===_adminFmtFilter)
+    _adminFmtFilter==='_sans_site'?_adminAllStagiaires.filter(s=>!s._meta?.site):
+    _adminAllStagiaires.filter(s=>(s._meta?.site||'')===_adminFmtFilter)
   );
   if(!filtered.length){listEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Aucun stagiaire</div>';return;}
-  const groups={};
+  // Groupement : site → formation + formateur
+  const siteGroups={};
   filtered.forEach(s=>{
-    const key=(s._meta?.formation||'Sans formation')+' — '+(s._meta?.fmt_prenom||'')+(s._meta?.fmt_nom?' '+s._meta.fmt_nom:'');
-    if(!groups[key])groups[key]=[];
-    groups[key].push(s);
+    const site=s._meta?.site||'Non assigné';
+    const subKey=(s._meta?.formation||'Sans formation')+' — '+(s._meta?.fmt_prenom||'')+(s._meta?.fmt_nom?' '+s._meta.fmt_nom:'');
+    if(!siteGroups[site])siteGroups[site]={};
+    if(!siteGroups[site][subKey])siteGroups[site][subKey]=[];
+    siteGroups[site][subKey].push(s);
   });
+  const groups=siteGroups; // renamed for rendering below
   const etapeIcon=e=>e==='metiers'?'🎯':e==='riasec'?'🔬':e==='qimi'?'📊':e==='profil'?'👤':'⏳';
-  listEl.innerHTML=Object.entries(groups).map(([grp,stags])=>`
-    <div style="margin-bottom:16px;">
-      <div style="font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(245,200,66,.2);">📚 ${grp}</div>
-      ${stags.map(s=>{
-        const p=s.profil||{};const etape=s.etape||'';
-        const empN=s.employeurs?.list?.length||0;
-        const dot=etape==='metiers'?'#4fe08a':etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':'rgba(255,255,255,.2)';
-        return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:s.qimi,riasec:s.riasec,metiers:s.metiers,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
-          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:#fff;flex-shrink:0;">${(p.prenom?.[0]||'?')+(p.nom?.[0]||'')}</div>
-          <div style="flex:1;">
-            <div style="font-weight:700;font-size:.88rem;">${p.prenom||s.prenom||'—'} ${p.nom||s.nom||''}</div>
-            <div style="font-size:.72rem;color:var(--muted);">${p.email||''}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;">
-              <span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></span>
-              <span style="font-size:.75rem;font-weight:700;">${etapeIcon(etape)} ${etape||'Non démarré'}</span>
-            </div>
-            <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
-          </div>
-        </div>`;
-      }).join('')}
+  const stagRow=s=>{
+    const p=s.profil||{};const etape=s.etape||'';
+    const empN=s.employeurs?.list?.length||0;
+    const dot=etape==='metiers'?'#4fe08a':etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':'rgba(255,255,255,.2)';
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:s.qimi,riasec:s.riasec,metiers:s.metiers,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
+      <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:#fff;flex-shrink:0;">${(p.prenom?.[0]||'?')+(p.nom?.[0]||'')}</div>
+      <div style="flex:1;"><div style="font-weight:700;font-size:.88rem;">${p.prenom||s.prenom||'—'} ${p.nom||s.nom||''}</div><div style="font-size:.72rem;color:var(--muted);">${p.email||''}</div></div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></span><span style="font-size:.75rem;font-weight:700;">${etapeIcon(etape)} ${etape||'Non démarré'}</span></div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
+      </div></div>`;
+  };
+  listEl.innerHTML=Object.entries(groups).map(([site,subGroups])=>`
+    <div style="margin-bottom:20px;">
+      <div style="font-size:.8rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#f5a423;margin-bottom:10px;padding:6px 10px;background:rgba(245,164,35,.08);border-left:3px solid #f5a423;border-radius:0 6px 6px 0;">📍 ${site}</div>
+      ${Object.entries(subGroups).map(([grp,stags])=>`
+        <div style="margin-bottom:12px;padding-left:10px;">
+          <div style="font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(245,200,66,.15);">📚 ${grp} (${stags.length})</div>
+          ${stags.map(stagRow).join('')}
+        </div>`).join('')}
     </div>`).join('');
 }
 
@@ -3283,21 +3321,24 @@ async function createFormateur(){
   const prenom=document.getElementById('adm-prenom').value.trim();
   const nom=document.getElementById('adm-nom').value.trim();
   const email=document.getElementById('adm-email').value.trim();
+  const site=document.getElementById('adm-site').value.trim();
   const formation=document.getElementById('adm-formation').value.trim();
   if(!prenom||!nom){toast('Prénom et nom requis','err');return;}
   if(!email){toast('Email requis','err');return;}
+  if(!site){toast('Sélectionnez un site POINFOR','err');return;}
   const url=window.location.href.split('?')[0];
   toast('Création en cours…');
   try{
     const r=await fetch(API_URL,{method:'POST',
       headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
-      body:JSON.stringify({action:'create_formateur',prenom,nom,email,formation,url})});
+      body:JSON.stringify({action:'create_formateur',prenom,nom,email,site,formation,url})});
     const d=await r.json();
     if(d.ok){
       toast(`✅ Formateur créé — code : ${d.pin}`,'ok');
       document.getElementById('adm-prenom').value='';
       document.getElementById('adm-nom').value='';
       document.getElementById('adm-email').value='';
+      document.getElementById('adm-site').value='';
       document.getElementById('adm-formation').value='';
       await refreshAdminPanel();
     }else{toast('Erreur : '+(d.error||'inconnue'),'err');}
