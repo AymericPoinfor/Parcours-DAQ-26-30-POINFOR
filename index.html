@@ -1651,6 +1651,13 @@ async function saveRiasecPDF(){
   catch(e){toast('Erreur PDF','err');}
 }
 
+// Affiche le nom du métier sans la forme féminine en double, sans perdre la spécialité
+// ex: "Agent / Agente de sécurité" -> "Agent de sécurité" ; "Coiffeur / Coiffeuse" -> "Coiffeur"
+function jobShortName(n){
+  const m=n.match(/^(\S+)\s*\/\s*\S+(.*)$/);
+  return m?(m[1]+m[2]):n;
+}
+
 // ══════════════════════════════════════════
 //  100 MÉTIERS
 // ══════════════════════════════════════════
@@ -2055,7 +2062,7 @@ function buildAction(){
   jobs.forEach(job=>{
     const b=document.createElement('button');
     b.className='filter-btn'+(empMetierFilter==job.id?' active':'');
-    b.textContent=job.e+' '+job.n.split('/')[0].trim();
+    b.textContent=job.e+' '+jobShortName(job.n);
     b.onclick=()=>filterEmpMetier(job.id,b);
     mf.appendChild(b);
   });
@@ -2074,7 +2081,7 @@ function buildAction(){
     const hasPlans=['A','B','C'].some(p=>plansData[p]?.length>0);
     const PLAN_COLORS={A:{bg:'rgba(79,207,142,.12)',border:'rgba(79,207,142,.35)',col:'#4fe08a',label:'Plan A — Priorité'},B:{bg:'rgba(106,172,255,.12)',border:'rgba(106,172,255,.35)',col:'#6aacff',label:'Plan B — Alternatif'},C:{bg:'rgba(245,200,66,.12)',border:'rgba(245,200,66,.35)',col:'#f5c842',label:'Plan C — Exploration'}};
     const jobRow=j=>{
-      const nom=j.n.split('/')[0].trim();
+      const nom=jobShortName(j.n);
       const qFT=encodeURIComponent(nom+' '+loc.city);
       const qGo=encodeURIComponent('stage immersion '+nom+' '+loc.dept);
       const qGm=encodeURIComponent(nom+' '+loc.city);
@@ -2563,7 +2570,7 @@ function genBilanPDF(){
         const pct=scoreJob(j,qd,rd);
         const col=pct>=70?'#2e7d32':pct>=45?'#1e4dd8':'#888';
         return`<div style="border:1px solid #dde5ff;border-radius:5px;padding:5px 9px;font-size:8pt;">`+
-          `<span style="font-size:10pt;">${j.e}</span> <b>${j.n.split('/')[0].trim()}</b>`+
+          `<span style="font-size:10pt;">${j.e}</span> <b>${jobShortName(j.n)}</b>`+
           `<span style="margin-left:6px;font-weight:800;color:${col};">${pct}%</span></div>`;
       }).join('')+`</div>`;
   }else{mEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Non complété</div>';}
@@ -3706,7 +3713,7 @@ function showStagiaireDetail(idx){
       const pct=scoreJob(j,qd,rd);
       const col=pct>=70?'#4fe08a':pct>=45?'#6aacff':'#aaa';
       return`<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:6px;">
-        <span>${j.e}</span><span style="font-size:.82rem;font-weight:700;">${j.n.split('/')[0].trim()}</span>
+        <span>${j.e}</span><span style="font-size:.82rem;font-weight:700;">${jobShortName(j.n)}</span>
         <span style="font-weight:800;color:${col};font-size:.78rem;">${pct}%</span>
       </div>`;
     }).join('')+`</div>`;
@@ -3723,7 +3730,7 @@ function showStagiaireDetail(idx){
       if(!pJobs.length)return'';
       const pc=PC[p];
       const jobPills=pJobs.map(j=>`<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:5px 10px;margin-bottom:5px;">
-        <span>${j.e}</span><span style="font-size:.82rem;font-weight:700;">${j.n.split('/')[0].trim()}</span>
+        <span>${j.e}</span><span style="font-size:.82rem;font-weight:700;">${jobShortName(j.n)}</span>
         <span style="font-size:.75rem;font-weight:800;color:${scoreJob(j,qd,rd)>=70?'#4fe08a':scoreJob(j,qd,rd)>=45?'#6aacff':'#aaa'}">${scoreJob(j,qd,rd)}%</span>
       </div>`).join('');
       return`<div style="border:1px solid ${pc.border};border-radius:9px;padding:12px 14px;margin-bottom:10px;background:${pc.bg};">
@@ -3958,7 +3965,7 @@ async function exportAllPDF(){
       // Métiers
       (md?.selected?.length?`<div style="margin-bottom:8px;">
         <div style="font-size:6.5pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;margin-bottom:4px;">Métiers choisis</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;">${md.selected.map(j=>`<span style="font-size:7pt;font-weight:700;border:1px solid #dde5ff;border-radius:3px;padding:2px 6px;">${j.e} ${j.n.split('/')[0].trim()}</span>`).join('')}</div></div>`:'')+
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${md.selected.map(j=>`<span style="font-size:7pt;font-weight:700;border:1px solid #dde5ff;border-radius:3px;padding:2px 6px;">${j.e} ${jobShortName(j.n)}</span>`).join('')}</div></div>`:'')+
       // Employeurs
       (emps.length?`<div style="font-size:6.5pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;margin-bottom:4px;">Plan d'action (${emps.length} employeur${emps.length>1?'s':''})</div>`+
         `<table style="width:100%;border-collapse:collapse;font-size:7pt;">`+
