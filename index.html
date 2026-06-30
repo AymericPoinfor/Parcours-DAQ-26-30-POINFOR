@@ -892,7 +892,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   </div>
   <div class="card">
     <div class="instr-title">Comment répondre ?</div>
-    <p style="color:var(--muted);margin-bottom:16px;font-size:.92rem;line-height:1.6;">Chaque question propose plusieurs réponses possibles : choisissez celle qui vous semble correcte. Pour certaines questions, un texte à retenir s'affichera d'abord puis disparaîtra avant la question — c'est normal, c'est voulu. Répondez à votre rythme, sans stress.</p>
+    <p style="color:var(--muted);margin-bottom:16px;font-size:.92rem;line-height:1.6;">Chaque question propose plusieurs réponses possibles : choisissez celle qui vous semble correcte. Pour certaines questions, un texte à retenir s'affichera d'abord puis disparaîtra avant la question, et pour d'autres une consigne vous sera lue à voix haute (pensez à activer le son) — c'est normal, c'est voulu. Répondez à votre rythme, sans stress.</p>
     <div class="note">Faites de votre mieux, sans vous inquiéter du résultat : ces exercices servent uniquement à mieux vous accompagner.</div>
     <button class="btn btn-p btn-full" onclick="startCog()">Démarrer →</button>
   </div>
@@ -907,7 +907,12 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     </div>
     <div id="cq-phase-memo">
       <div class="q-txt" id="cq-memo-txt" style="margin-bottom:18px;">…</div>
-      <button class="btn btn-p btn-full" onclick="cogRevealQuestion()">J'ai mémorisé, je réponds →</button>
+      <div id="cq-memo-audio" style="display:none;text-align:center;margin-bottom:18px;padding:24px;background:rgba(79,142,247,.08);border:1px dashed rgba(79,142,247,.3);border-radius:14px;">
+        <div style="font-size:2rem;margin-bottom:10px;">🔊</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:14px;">Écoutez attentivement la consigne (activez le son de votre appareil).</div>
+        <button class="btn btn-s" onclick="cogReplayAudio()">🔁 Réécouter</button>
+      </div>
+      <button class="btn btn-p btn-full" id="cq-reveal-btn" onclick="cogRevealQuestion()">J'ai mémorisé, je réponds →</button>
     </div>
     <div id="cq-phase-question">
       <div class="q-txt" id="cq-txt">…</div>
@@ -1523,7 +1528,7 @@ const COGQ=[
   {l:'ATT',type:'mcq',q:'Combien de fois la lettre « a » apparaît dans « banana » ?',opts:['2','3','4','5'],a:1},
   {l:'MEMI',type:'memo',show:'Retenez ces trois mots : chat, table, lune.',q:'Quel était le 2ᵉ mot ?',opts:['Chat','Table','Lune','Stylo'],a:1},
   {l:'MEMT',type:'memo',show:'Retenez ces deux mots : porte, fenêtre. Calculez ensuite 6 + 3 dans votre tête.',q:'Quel était le 1ᵉʳ mot à retenir ?',opts:['Porte','Fenêtre','Mur','Toit'],a:0},
-  {l:'COMPO',type:'memo',show:'Consigne : rangez d\'abord les crayons, puis sortez votre cahier.',q:'Que deviez-vous faire en premier ?',opts:['Sortir le cahier','Ranger les crayons','Lever la main','Fermer la porte'],a:1},
+  {l:'COMPO',type:'memo',audio:true,show:'Consigne : rangez d\'abord les crayons, puis sortez votre cahier.',q:'Que deviez-vous faire en premier ?',opts:['Sortir le cahier','Ranger les crayons','Lever la main','Fermer la porte'],a:1},
   {l:'COMPE',type:'mcq',q:'« Cochez la case uniquement si vous êtes disponible le matin. » Que faire si vous êtes disponible l\'après-midi seulement ?',opts:['Cocher la case','Ne pas cocher la case','Cocher deux fois','Écrire une lettre'],a:1},
   {l:'LOG',type:'mcq',q:'Complétez la suite : 2, 4, 6, 8, ?',opts:['9','10','11','12'],a:1},
   {l:'ORG',type:'mcq',q:'Pour préparer un café, quel est le bon ordre des étapes ?',opts:["Boire, verser l'eau, faire chauffer","Faire chauffer l'eau, verser sur le café, boire","Verser le café dans la tasse, boire, faire chauffer","Boire, faire chauffer, verser"],a:1},
@@ -1532,7 +1537,7 @@ const COGQ=[
   {l:'ATT',type:'mcq',q:'Lequel de ces mots est mal orthographié ?',opts:['Maison','Maison','Maisom','Maison'],a:2},
   {l:'MEMI',type:'memo',show:'Retenez ce numéro : 5 8 2 9.',q:'Quel était le 3ᵉ chiffre ?',opts:['5','8','2','9'],a:2},
   {l:'MEMT',type:'memo',show:'Retenez ces trois chiffres : 4, 9, 1. Additionnez ensuite 2 + 2 dans votre tête.',q:'Quel était le chiffre du milieu à retenir ?',opts:['4','9','1','7'],a:1},
-  {l:'COMPO',type:'memo',show:'Consigne : allez chercher la boîte bleue qui se trouve sur l\'étagère du haut.',q:'Où se trouve la boîte à aller chercher ?',opts:['Sur le bureau',"Sur l'étagère du haut",'Dans le tiroir','Par terre'],a:1},
+  {l:'COMPO',type:'memo',audio:true,show:'Consigne : allez chercher la boîte bleue qui se trouve sur l\'étagère du haut.',q:'Où se trouve la boîte à aller chercher ?',opts:['Sur le bureau',"Sur l'étagère du haut",'Dans le tiroir','Par terre'],a:1},
   {l:'COMPE',type:'mcq',q:'« Numérotez les documents de 1 à 5 en commençant par le plus récent. » Quel document portera le numéro 1 ?',opts:['Le plus ancien','Le plus récent','Le plus grand','N\'importe lequel'],a:1},
   {l:'LOG',type:'mcq',q:'Quel mot ne va pas avec les autres ?',opts:['Pomme','Banane','Carotte','Poire'],a:2},
   {l:'ORG',type:'mcq',q:'Avant de partir à un entretien d\'embauche, que faites-vous en premier ?',opts:['Préparer ses documents et son itinéraire la veille','S\'habiller au dernier moment','Improviser sur place','Arriver sans avoir vérifié l\'adresse'],a:0},
@@ -1541,7 +1546,7 @@ const COGQ=[
   {l:'ATT',type:'mcq',q:'Dans la suite « 4 7 2 9 2 5 2 8 », combien de fois apparaît le chiffre 2 ?',opts:['2','3','4','5'],a:1},
   {l:'MEMI',type:'memo',show:'Retenez cette consigne : prenez le stylo rouge, puis posez-le sur le livre.',q:'Que deviez-vous poser sur le livre ?',opts:['Le crayon','Le stylo rouge','Le cahier','La gomme'],a:1},
   {l:'MEMT',type:'memo',show:'On vous donne 3 consignes : levez la main, comptez jusqu\'à 3, puis tapez du pied.',q:'Quelle était la 2ᵉ consigne ?',opts:['Lever la main',"Compter jusqu'à 3",'Taper du pied','Fermer les yeux'],a:1},
-  {l:'COMPO',type:'memo',show:'Consigne : si vous entendez la cloche, arrêtez votre travail et levez-vous.',q:'Que devez-vous faire si vous entendez la cloche ?',opts:['Continuer de travailler','Vous arrêter et vous lever','Sortir de la salle','Rien'],a:1},
+  {l:'COMPO',type:'memo',audio:true,show:'Consigne : si vous entendez la cloche, arrêtez votre travail et levez-vous.',q:'Que devez-vous faire si vous entendez la cloche ?',opts:['Continuer de travailler','Vous arrêter et vous lever','Sortir de la salle','Rien'],a:1},
   {l:'COMPE',type:'mcq',q:'« Répondez par oui ou par non, sauf si la question ne vous concerne pas. » Que faire si la question ne vous concerne pas ?',opts:['Répondre oui','Répondre non','Ne pas répondre','Répondre les deux'],a:2},
   {l:'LOG',type:'mcq',q:'Tous les chats sont des animaux. Félix est un chat. Donc Félix est…',opts:['un animal','un chien','une plante','un objet'],a:0},
   {l:'ORG',type:'mcq',q:'Pour ranger une pièce efficacement, quelle est la meilleure démarche ?',opts:['Tout ranger au hasard','Trier d\'abord, puis ranger chaque catégorie','Ranger sans trier','Ne rien faire'],a:1},
@@ -1550,7 +1555,7 @@ const COGQ=[
   {l:'ATT',type:'mcq',q:'Combien de mots commencent par la lettre « p » : porte, table, panier, chaise, plante ?',opts:['1','2','3','4'],a:2},
   {l:'MEMI',type:'memo',show:'Retenez ces trois couleurs : vert, bleu, jaune.',q:'Quelle couleur venait en dernier ?',opts:['Vert','Bleu','Jaune','Rouge'],a:2},
   {l:'MEMT',type:'memo',show:'Retenez ces deux mots dans l\'ordre inverse : lundi, mardi.',q:'Dans l\'ordre inverse, quel mot devez-vous dire en premier ?',opts:['Lundi','Mardi','Mercredi','Jeudi'],a:1},
-  {l:'COMPO',type:'memo',show:'Consigne : prenez deux feuilles, donnez-en une à votre voisin.',q:'Combien de feuilles devez-vous prendre au total ?',opts:['Une','Deux','Trois','Quatre'],a:1},
+  {l:'COMPO',type:'memo',audio:true,show:'Consigne : prenez deux feuilles, donnez-en une à votre voisin.',q:'Combien de feuilles devez-vous prendre au total ?',opts:['Une','Deux','Trois','Quatre'],a:1},
   {l:'COMPE',type:'mcq',q:'« Avant de signer, relisez attentivement le document. » Quelle est la 1ʳᵉ étape avant de signer ?',opts:['Signer','Relire le document','Le jeter','Le photocopier'],a:1},
   {l:'LOG',type:'mcq',q:'Complétez la suite : 1, 3, 6, 10, ?',opts:['12','14','15','16'],a:2},
   {l:'ORG',type:'mcq',q:'Vous devez envoyer un dossier de candidature. Quelle est la dernière étape avant l\'envoi ?',opts:['Rédiger le CV','Relire l\'ensemble du dossier','Choisir l\'offre','Chercher l\'adresse mail'],a:1},
@@ -2027,10 +2032,19 @@ function renderCQ(){
   document.getElementById('cq-phase-memo').style.display=memoPhase?'block':'none';
   document.getElementById('cq-phase-question').style.display=memoPhase?'none':'block';
   if(memoPhase){
-    document.getElementById('cq-memo-txt').textContent=q.show;
+    const useAudio=!!q.audio&&cogAudioSupported();
+    document.getElementById('cq-memo-txt').style.display=useAudio?'none':'block';
+    document.getElementById('cq-memo-audio').style.display=useAudio?'block':'none';
+    document.getElementById('cq-reveal-btn').textContent=useAudio?"J'ai écouté, je réponds →":"J'ai mémorisé, je réponds →";
+    if(useAudio){
+      cogSpeak(q.show);
+    }else{
+      document.getElementById('cq-memo-txt').textContent=q.show;
+    }
     setCounter('Question '+(i+1)+' / 32');
     return;
   }
+  if(window.speechSynthesis)speechSynthesis.cancel();
   document.getElementById('cq-txt').textContent=q.q;
   const ans=cogAns[i];
   const row=document.getElementById('cq-opts');
@@ -2047,7 +2061,32 @@ function renderCQ(){
   setCounter('Question '+(i+1)+' / 32');
 }
 
-function cogRevealQuestion(){cogMemoSeen[cogCur]=true;renderCQ();}
+function cogAudioSupported(){return'speechSynthesis'in window&&typeof SpeechSynthesisUtterance!=='undefined';}
+
+function cogSpeak(text){
+  if(!cogAudioSupported())return;
+  const speakNow=()=>{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='fr-FR';u.rate=0.95;
+    const voices=speechSynthesis.getVoices();
+    const frVoice=voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'));
+    if(frVoice)u.voice=frVoice;
+    speechSynthesis.speak(u);
+  };
+  if(speechSynthesis.getVoices().length===0){
+    speechSynthesis.onvoiceschanged=speakNow;
+  }else{
+    speakNow();
+  }
+}
+
+function cogReplayAudio(){const q=COGQ[cogCur];if(q&&q.show)cogSpeak(q.show);}
+
+function cogRevealQuestion(){
+  if(window.speechSynthesis)speechSynthesis.cancel();
+  cogMemoSeen[cogCur]=true;renderCQ();
+}
 
 function cogSel(idx){
   cogAns[cogCur]=idx;
@@ -2060,7 +2099,7 @@ function cogSel(idx){
   },260);
 }
 
-function cogBack(){if(cogCur>0){cogCur--;renderCQ();}}
+function cogBack(){if(window.speechSynthesis)speechSynthesis.cancel();if(cogCur>0){cogCur--;renderCQ();}}
 
 function computeCogScores(){
   const s={};COGKEYS.forEach(k=>s[k]=0);
