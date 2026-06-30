@@ -996,6 +996,11 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 <!-- ══ PLAN D'ACTION (Phase 5) ══ -->
 <div class="scr" id="scr-action">
 
+  <!-- Tests nouvellement affectés, non encore réalisés -->
+  <div class="card" id="action-pending-card" style="display:none;margin-bottom:12px;border-color:rgba(245,200,66,.4);background:rgba(245,200,66,.06);">
+    <div id="action-pending-tests"></div>
+  </div>
+
   <!-- Carte stats -->
   <div class="card" style="margin-bottom:12px;">
     <div style="text-align:center;margin-bottom:14px;">
@@ -1735,8 +1740,15 @@ function nextTestAfter(stageKey){
   for(let i=fromIdx;i<TESTS_ORDER.length;i++){if(t[TESTS_ORDER[i].key])return TESTS_ORDER[i];}
   return null;
 }
-function labelAfter(stageKey){const n=nextTestAfter(stageKey);return n?n.label:'Choisir mes métiers →';}
-function goAfter(stageKey){const n=nextTestAfter(stageKey);if(n)n.start();else goMetiers();}
+let _testResumeMode=false;
+function labelAfter(stageKey){
+  if(_testResumeMode)return"← Retour à mon plan d'action";
+  const n=nextTestAfter(stageKey);return n?n.label:'Choisir mes métiers →';
+}
+function goAfter(stageKey){
+  if(_testResumeMode){_testResumeMode=false;buildAction();go('scr-action');setpg(100);setStep('Étape 8 / 8');setTitle('Mon plan d\'action');setCounter('');return;}
+  const n=nextTestAfter(stageKey);if(n)n.start();else goMetiers();
+}
 function goAfterProfil(){goAfter(null);}
 function goAfterQimi(){goAfter('qimi');}
 function goAfterRiasec(){goAfter('riasec');}
@@ -2706,7 +2718,33 @@ function saveEmployeurs(){
 }
 function genId(){return'emp_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);}
 
+function pendingTests(){
+  const assigned=getAssignedTests();
+  return TESTS_ORDER.filter(t=>assigned[t.key]&&!localStorage.getItem('parcours_'+t.key));
+}
+
+function startPendingTest(key){
+  _testResumeMode=true;
+  const t=TESTS_ORDER.find(x=>x.key===key);
+  if(t)t.start();
+}
+
+function renderPendingTestsBanner(){
+  const card=document.getElementById('action-pending-card');
+  const el=document.getElementById('action-pending-tests');
+  if(!card||!el)return;
+  const pending=pendingTests();
+  if(!pending.length){card.style.display='none';el.innerHTML='';return;}
+  card.style.display='block';
+  el.innerHTML=`<div style="font-size:.95rem;font-weight:800;margin-bottom:6px;">🆕 ${pending.length>1?'Nouveaux tests à compléter':'Nouveau test à compléter'}</div>`+
+    `<div style="font-size:.8rem;color:var(--muted);margin-bottom:12px;">Votre formateur a ajouté ${pending.length>1?'ces tests':'ce test'} à votre parcours. Vous pouvez les réaliser maintenant, puis revenir à votre plan d'action.</div>`+
+    `<div style="display:flex;gap:8px;flex-wrap:wrap;">`+
+    pending.map(t=>`<button class="btn btn-p" style="flex:1;min-width:160px;" onclick="startPendingTest('${t.key}')">${t.emoji} ${t.name} →</button>`).join('')+
+    `</div>`;
+}
+
 function buildAction(){
+  renderPendingTestsBanner();
   loadEmployeurs();
   const md=JSON.parse(localStorage.getItem('parcours_metiers')||'null');
   const jobs=md&&md.selected?md.selected:[];
@@ -3151,6 +3189,7 @@ function resumeParcours(){
 function newStagiaire(){
   if(!confirm('Effacer les données du stagiaire actuel et recommencer ?\n(Les profils du tableau de bord formateur sont conservés.)'))return;
   ['parcours_profil','parcours_qimi','parcours_riasec','parcours_valeurs','parcours_competences','parcours_cognitif','parcours_metiers','parcours_employeurs'].forEach(k=>localStorage.removeItem(k));
+  _testResumeMode=false;
   Object.assign(st,{sit:null,niveau:null,photo:null});
   qimiAns=new Array(100).fill(null);qimiCur=0;
   rScores={R:0,I:0,A:0,S:0,E:0,C:0};rMax={R:0,I:0,A:0,S:0,E:0,C:0};rSecIdx=0;rQIdx=0;
@@ -3422,6 +3461,7 @@ function saveStagiaireNamespace(){
 function normalize(s){return(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
 
 function checkAccessCode(){
+  _testResumeMode=false;
   const code=document.getElementById('access-inp').value.trim();
   const prenom=document.getElementById('access-prenom').value.trim();
   const nom=document.getElementById('access-nom').value.trim();
