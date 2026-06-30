@@ -3565,6 +3565,15 @@ function addStagiaireCode(){
   renderCodesList();
   toast(prenom+' '+nom+' — code : '+code,'ok');
   if(email) sendInvitation(prenom,nom,code,email);
+  // Enregistrer sur le serveur comme "en attente" (uniquement si email fourni, pour éviter les doublons)
+  if(email&&_fmtPin){
+    const formateurEmail=_fmtFmt?.email||localStorage.getItem('parcours_formateur')||'';
+    fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Pin':_fmtPin},
+      body:JSON.stringify({email,prenom,nom,etape:'invite',formateur_email:formateurEmail,
+        profil:{prenom,nom,email,code},
+        qimi:null,riasec:null,valeurs:null,competences:null,cognitif:null,metiers:null,employeurs:null})
+    }).catch(()=>{});
+  }
 }
 
 function removeStagiaireCode(code){
@@ -4221,11 +4230,11 @@ function renderAdminGlobal(data){
     siteGroups[site][subKey].push(s);
   });
   const groups=siteGroups; // renamed for rendering below
-  const etapeIcon=e=>e==='metiers'?'🎯':e==='cognitif'?'🧮':e==='competences'?'🧩':e==='valeurs'?'⚖️':e==='riasec'?'🔬':e==='qimi'?'📊':e==='profil'?'👤':'⏳';
+  const etapeIcon=e=>e==='metiers'?'🎯':e==='cognitif'?'🧮':e==='competences'?'🧩':e==='valeurs'?'⚖️':e==='riasec'?'🔬':e==='qimi'?'📊':e==='profil'?'👤':e==='invite'?'✉️':'⏳';
   const stagRow=s=>{
     const p=s.profil||{};const etape=s.etape||'';
     const empN=s.employeurs?.list?.length||0;
-    const dot=etape==='metiers'?'#4fe08a':etape==='cognitif'||etape==='competences'||etape==='valeurs'||etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':'rgba(255,255,255,.2)';
+    const dot=etape==='metiers'?'#4fe08a':etape==='cognitif'||etape==='competences'||etape==='valeurs'||etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':etape==='invite'?'rgba(255,200,80,.6)':'rgba(255,255,255,.2)';
     const emailStag=p.email||'';
     const nomStag=((p.prenom||s.prenom||'')+' '+(p.nom||s.nom||'')).trim();
     return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
