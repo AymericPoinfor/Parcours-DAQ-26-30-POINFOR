@@ -4226,13 +4226,19 @@ function renderAdminGlobal(data){
     const p=s.profil||{};const etape=s.etape||'';
     const empN=s.employeurs?.list?.length||0;
     const dot=etape==='metiers'?'#4fe08a':etape==='cognitif'||etape==='competences'||etape==='valeurs'||etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':'rgba(255,255,255,.2)';
-    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:s.qimi,riasec:s.riasec,valeurs:s.valeurs,competences:s.competences,cognitif:s.cognitif,metiers:s.metiers,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
-      <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:#fff;flex-shrink:0;">${(p.prenom?.[0]||'?')+(p.nom?.[0]||'')}</div>
-      <div style="flex:1;"><div style="font-weight:700;font-size:.88rem;">${p.prenom||s.prenom||'—'} ${p.nom||s.nom||''}</div><div style="font-size:.72rem;color:var(--muted);">${p.email||''}</div></div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></span><span style="font-size:.75rem;font-weight:700;">${etapeIcon(etape)} ${etape||'Non démarré'}</span></div>
-        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
-      </div></div>`;
+    const emailStag=p.email||'';
+    const nomStag=((p.prenom||s.prenom||'')+' '+(p.nom||s.nom||'')).trim();
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+      <div style="flex:1;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:s.qimi,riasec:s.riasec,valeurs:s.valeurs,competences:s.competences,cognitif:s.cognitif,metiers:s.metiers,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
+        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:#fff;flex-shrink:0;">${(p.prenom?.[0]||'?')+(p.nom?.[0]||'')}</div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:.88rem;">${p.prenom||s.prenom||'—'} ${p.nom||s.nom||''}</div><div style="font-size:.72rem;color:var(--muted);">${emailStag}</div></div>
+        <div style="text-align:right;flex-shrink:0;margin-right:6px;">
+          <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></span><span style="font-size:.75rem;font-weight:700;">${etapeIcon(etape)} ${etape||'Non démarré'}</span></div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
+        </div>
+      </div>
+      <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;color:#f77a7a;flex-shrink:0;" title="Supprimer ce profil" onclick="event.stopPropagation();confirmDeleteStagiaire('${nomStag}','${emailStag}')">🗑</button>
+    </div>`;
   };
   listEl.innerHTML=Object.entries(groups).map(([site,subGroups])=>`
     <div style="margin-bottom:20px;">
@@ -4509,7 +4515,7 @@ async function renderFormateurDashboard(){
         <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
           <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="showStagiaireDetail(${idx})">👁 Détail</button>
           ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">💾 PDF</button>`:''}
-          <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="deleteStagiaire('${p.email}',this)">🗑</button>
+          <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="confirmDeleteStagiaire('${p.prenom} ${p.nom}','${p.email}')">🗑 Supprimer</button>
         </div>
       </div>`+
       `<div style="font-size:.68rem;color:var(--muted);margin-top:8px;">Dernière mise à jour : ${new Date(entry.savedAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div>`;
@@ -4517,16 +4523,56 @@ async function renderFormateurDashboard(){
   });
 }
 
-async function deleteStagiaire(email,btn){
-  if(!confirm('Supprimer le profil de '+email+' ?'))return;
-  btn.disabled=true;
-  try{
-    await fetch(API_URL+'?email='+encodeURIComponent(email),{method:'DELETE',headers:{'X-Pin':_fmtPin}});
-  }catch(e){}
+let _deletePending=null;
+
+function confirmDeleteStagiaire(nom,email){
+  let modal=document.getElementById('delete-confirm-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='delete-confirm-modal';
+    modal.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:20px;';
+    modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
+    document.body.appendChild(modal);
+  }
+  _deletePending={nom,email};
+  modal.innerHTML=`
+    <div style="background:var(--bg);border:1px solid rgba(247,122,122,.4);border-radius:16px;padding:28px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🗑️</div>
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:8px;">Supprimer ce profil ?</div>
+      <div style="font-size:1rem;color:var(--accent);font-weight:700;margin-bottom:4px;">${nom}</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:16px;">${email}</div>
+      <div style="font-size:.82rem;color:var(--muted);background:rgba(247,122,122,.08);border:1px solid rgba(247,122,122,.25);border-radius:8px;padding:12px 14px;margin-bottom:24px;line-height:1.5;">
+        ⚠️ Cette action supprime définitivement tous les résultats et données de ce stagiaire.<br>Elle est <strong>irréversible</strong>.
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-s" style="flex:1;" onclick="document.getElementById('delete-confirm-modal').style.display='none'">Annuler</button>
+        <button class="btn" style="flex:1;background:linear-gradient(135deg,#e53935,#c62828);color:#fff;font-weight:800;" onclick="executeDeleteStagiaire()">Supprimer définitivement</button>
+      </div>
+    </div>`;
+  modal.style.display='flex';
+}
+
+async function executeDeleteStagiaire(){
+  if(!_deletePending)return;
+  const{nom,email}=_deletePending;
+  _deletePending=null;
+  document.getElementById('delete-confirm-modal').style.display='none';
+  // Suppression serveur (essai avec pin admin puis formateur)
+  const pin=typeof _adminPin!=='undefined'&&_adminPin?_adminPin:_fmtPin;
+  try{await fetch(API_URL+'?email='+encodeURIComponent(email),{method:'DELETE',headers:{'X-Pin':pin}});}catch(e){}
+  // Suppression profils_liste (dashboard)
   const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]').filter(e=>e.email!==email);
   localStorage.setItem('profils_liste',JSON.stringify(liste));
+  // Suppression codes stagiaires si le code lui correspond
+  const newCodes=getStagiairesList().filter(s=>normalize(s.email||'')!==normalize(email));
+  saveStagiairesList(newCodes);
+  // Actualiser les deux vues
+  if(typeof _adminAllStagiaires!=='undefined'){
+    _adminAllStagiaires=_adminAllStagiaires.filter(s=>(s.profil?.email||s.email||'')!==email);
+    renderAdminGlobal();
+  }
   renderFormateurDashboard();
-  toast('Profil supprimé','ok');
+  toast(nom+' — profil supprimé','ok');
 }
 function exportProfilJSON(idx){
   const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
