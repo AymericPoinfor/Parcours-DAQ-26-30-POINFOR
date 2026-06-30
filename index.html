@@ -2608,9 +2608,8 @@ function genBilanPDF(){
     .catch(()=>toast('Erreur PDF','err'));
 }
 
-async function genBilanPDFFromSnap(idx){
-  const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
-  const entry=liste[idx];if(!entry)return;
+async function genBilanPDFFromModal(){
+  const entry=_modalEntry;if(!entry)return;
   const snap=entry.snap;
   const p=snap?.profil||{};
   const qd=snap?.qimi;
@@ -3681,9 +3680,11 @@ function exportProfilJSON(idx){
   a.click();URL.revokeObjectURL(url);
   toast('JSON exporté !','ok');
 }
+let _modalEntry=null;
 function showStagiaireDetail(idx){
   const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
   const entry=liste[idx];if(!entry)return;
+  _modalEntry=entry;
   const snap=entry.snap;
   const p=snap?.profil||{};
   const qd=snap?.qimi;
@@ -3821,7 +3822,7 @@ function showStagiaireDetail(idx){
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${empList.length?'rgba(79,142,247,.2)':'rgba(255,255,255,.08)'};color:${empList.length?'#6aacff':'#aaa'};">${empList.length} employeur${empList.length>1?'s':''}</span>
           </div>
         </div>
-        ${(qd||rd||md)?`<button onclick="genBilanPDFFromSnap(${idx})" class="btn btn-s" style="padding:8px 14px;font-size:.78rem;flex-shrink:0;white-space:nowrap;">📄 Bilan PDF</button>`:''}
+        ${(qd||rd||md)?`<button onclick="genBilanPDFFromModal()" class="btn btn-s" style="padding:8px 14px;font-size:.78rem;flex-shrink:0;white-space:nowrap;">📄 Bilan PDF</button>`:''}
         <button onclick="document.getElementById('stagiaire-detail-modal').style.display='none'" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;flex-shrink:0;">✕</button>
       </div>
       <!-- Body -->
