@@ -4343,7 +4343,7 @@ function confirmDeleteFormateur(email,nom){
 async function executeDeleteFormateur(){
   document.getElementById('fmt-delete-modal').style.display='none';
   try{
-    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},body:JSON.stringify({action:'delete_formateur',email:_fmtDeleteEmail})});
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},body:JSON.stringify({action:'hard_delete_formateur',email:_fmtDeleteEmail})});
     const d=await r.json();
     if(d.ok){toast('Formateur supprimé','ok');await refreshAdminPanel();}
     else toast('Erreur : '+(d.error||'inconnue'),'err');
