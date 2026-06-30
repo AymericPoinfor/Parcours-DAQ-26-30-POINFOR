@@ -639,7 +639,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div class="po-row"><span class="pl">Niveau</span><span class="pv" id="po-niv"></span></div>
     <div class="po-row"><span class="pl">Âge</span><span class="pv" id="po-age"></span></div>
   </div>
-  <button class="btn btn-p btn-lg" onclick="goQimiIntro()">Démarrer le test QIMI →</button>
+  <button class="btn btn-p btn-lg" id="po-next-btn" onclick="goAfterProfil()">Démarrer le test QIMI →</button>
 </div>
 
 <!-- ══ QIMI INSTRUCTIONS ══ -->
@@ -699,7 +699,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       <div class="descs" id="qr-descs"></div>
       <div class="r-actions">
         <button class="btn btn-s" onclick="saveQimiPDF()">💾 Enregistrer PDF</button>
-        <button class="btn btn-p btn-lg" onclick="goRiasecIntro()">Démarrer le test RIASEC →</button>
+        <button class="btn btn-p btn-lg" id="qr-next-btn" onclick="goAfterQimi()">Démarrer le test RIASEC →</button>
       </div>
     </div>
   </div>
@@ -748,7 +748,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   <div id="rr-profiles"></div>
   <div class="r-actions" style="margin-top:8px;">
     <button class="btn btn-s" onclick="saveRiasecPDF()">💾 Enregistrer PDF</button>
-    <button class="btn btn-g btn-lg" onclick="goValeursIntro()">Test Valeurs professionnelles →</button>
+    <button class="btn btn-g btn-lg" id="rr-next-btn" onclick="goAfterRiasec()">Test Valeurs professionnelles →</button>
   </div>
 </div>
 
@@ -954,6 +954,10 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       <input id="fmt-st-prenom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Prénom *">
       <input id="fmt-st-nom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Nom *">
       <input id="fmt-st-code" class="ef-inp" style="flex:1;min-width:100px;max-width:140px;" placeholder="Code (auto)">
+    </div>
+    <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;align-items:center;font-size:.82rem;color:var(--muted);">
+      <span style="font-weight:700;">Tests à affecter :</span>
+      <span id="fmt-st-tests-checks" style="display:flex;gap:14px;flex-wrap:wrap;"></span>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
       <input id="fmt-st-email" class="ef-inp" type="email" style="flex:1;" placeholder="Email du stagiaire (pour envoi auto de l'invitation)">
@@ -1465,6 +1469,7 @@ function showProfilOk(p){
   document.getElementById('po-age').textContent=p.age?p.age+' ans':'—';
   if(p.photo){const img=document.getElementById('po-photo');img.src=p.photo;img.style.display='block';document.getElementById('po-init').style.display='none';}
   else{document.getElementById('po-init').textContent=(p.prenom[0]+p.nom[0]).toUpperCase();}
+  document.getElementById('po-next-btn').textContent=labelAfter(null);
   go('scr-profil-ok');setpg(25);setStep('Profil ✓');setTitle('Profil créé');
   toast('Profil créé avec succès !','ok');
   saveToProfilsList();
@@ -1473,6 +1478,28 @@ function showProfilOk(p){
 // ══════════════════════════════════════════
 //  QIMI
 // ══════════════════════════════════════════
+// Ordre des tests dans le parcours — ajouter une entrée ici suffit pour brancher un nouveau test.
+const TESTS_ORDER=[
+  {key:'qimi',name:'QIMI',emoji:'🧠',label:'Démarrer le test QIMI →',start:()=>goQimiIntro()},
+  {key:'riasec',name:'RIASEC',emoji:'🔬',label:'Démarrer le test RIASEC →',start:()=>goRiasecIntro()},
+  {key:'valeurs',name:'Valeurs',emoji:'⚖️',label:'Test Valeurs professionnelles →',start:()=>goValeursIntro()}
+];
+function getAssignedTests(){
+  try{return JSON.parse(localStorage.getItem('parcours_tests_assigned')||'null')||defaultTests();}
+  catch(e){return defaultTests();}
+}
+function nextTestAfter(stageKey){
+  const t=getAssignedTests();
+  const fromIdx=stageKey?TESTS_ORDER.findIndex(x=>x.key===stageKey)+1:0;
+  for(let i=fromIdx;i<TESTS_ORDER.length;i++){if(t[TESTS_ORDER[i].key])return TESTS_ORDER[i];}
+  return null;
+}
+function labelAfter(stageKey){const n=nextTestAfter(stageKey);return n?n.label:'Choisir mes métiers →';}
+function goAfter(stageKey){const n=nextTestAfter(stageKey);if(n)n.start();else goMetiers();}
+function goAfterProfil(){goAfter(null);}
+function goAfterQimi(){goAfter('qimi');}
+function goAfterRiasec(){goAfter('riasec');}
+
 function goQimiIntro(){go('scr-qimi-instr');setpg(28);setStep('Étape 2 / 6');setTitle('Test QIMI');}
 
 function startQIMI(){
@@ -1552,6 +1579,7 @@ function showQimiRes(){
   // Save
   localStorage.setItem('parcours_qimi',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
   saveToProfilsList();
+  document.getElementById('qr-next-btn').textContent=labelAfter('qimi');
   go('scr-qimi-res');setpg(50);setStep('QIMI ✓');setTitle('Résultats QIMI');
 }
 
@@ -1761,6 +1789,7 @@ function buildRRes(){
   });
   localStorage.setItem('parcours_riasec',JSON.stringify({scores:rScores,norm,code:top3.join(''),top3,date:now.toISOString()}));
   saveToProfilsList();
+  document.getElementById('rr-next-btn').textContent=labelAfter('riasec');
   go('scr-rsec-res');setpg(90);setStep('RIASEC ✓');setTitle('Résultats RIASEC');
 }
 
@@ -2652,9 +2681,9 @@ function resumeParcours(){
   const qimi=localStorage.getItem('parcours_qimi');
   const profil=JSON.parse(localStorage.getItem('parcours_profil')||'null');
   if(metiers){buildAction();}
-  else if(valeurs){goMetiers();}
-  else if(riasec){goValeursIntro();}
-  else if(qimi){goRiasecIntro();}
+  else if(valeurs){goAfter('valeurs');}
+  else if(riasec){goAfterRiasec();}
+  else if(qimi){goAfterQimi();}
   else if(profil){showProfilOk(profil);}
   else{go('scr-welcome');setpg(5);}
 }
@@ -2931,7 +2960,10 @@ function checkAccessCode(){
       sessionStorage.setItem('stagiaire_code',found.code);
       sessionStorage.setItem('stagiaire_nom',found.prenom+' '+found.nom);
       loadStagiaireData(found.code);
+      localStorage.setItem('parcours_tests_assigned',JSON.stringify(found.tests||defaultTests()));
       document.getElementById('tb-title').textContent='Parcours de '+found.prenom;
+    }else{
+      localStorage.setItem('parcours_tests_assigned',JSON.stringify(defaultTests()));
     }
     proceedAfterAuth();
   }else{
@@ -2951,6 +2983,17 @@ function proceedAfterAuth(){
 // ── Gestion codes stagiaires (formateur) ───────────────────────────────────
 function genCode(){return Math.random().toString(36).substr(2,6).toUpperCase();}
 
+const ALL_TESTS=TESTS_ORDER.map(x=>x.key);
+function defaultTests(){const o={};ALL_TESTS.forEach(k=>o[k]=true);return o;}
+
+function renderTestCheckboxes(){
+  const el=document.getElementById('fmt-st-tests-checks');
+  if(!el)return;
+  el.innerHTML=TESTS_ORDER.map(t=>
+    `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="fmt-st-test-${t.key}" checked> ${t.emoji} ${t.name}</label>`
+  ).join('');
+}
+
 function addStagiaireCode(){
   const prenom=document.getElementById('fmt-st-prenom').value.trim();
   const nom=document.getElementById('fmt-st-nom').value.trim();
@@ -2960,12 +3003,15 @@ function addStagiaireCode(){
   if(!code)code=genCode();
   const list=getStagiairesList();
   if(list.find(s=>s.code===code)){toast('Code déjà utilisé','err');return;}
-  list.push({prenom,nom,code,email});
+  const tests={};
+  ALL_TESTS.forEach(k=>{tests[k]=document.getElementById('fmt-st-test-'+k).checked;});
+  list.push({prenom,nom,code,email,tests});
   saveStagiairesList(list);
   document.getElementById('fmt-st-prenom').value='';
   document.getElementById('fmt-st-nom').value='';
   document.getElementById('fmt-st-code').value='';
   document.getElementById('fmt-st-email').value='';
+  renderTestCheckboxes();
   renderCodesList();
   toast(prenom+' '+nom+' — code : '+code,'ok');
   if(email) sendInvitation(prenom,nom,code,email);
@@ -2988,16 +3034,56 @@ function renderCodesList(){
     row.style.cssText='display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;';
     const hasDone=!!localStorage.getItem('s_'+s.code+'_parcours_profil');
     const emailAttr=s.email?` title="${s.email}"`:'';
+    const t=s.tests||defaultTests();
+    const testsBadge=TESTS_ORDER.map(x=>`<span style="opacity:${t[x.key]?'1':'.25'};" title="${x.name}${t[x.key]?' activé':' désactivé'}">${x.emoji}</span>`).join('');
     row.innerHTML=
       `<div style="flex:1;min-width:0;"><div style="font-size:.9rem;font-weight:700;">${s.prenom} ${s.nom}</div>`+
       (s.email?`<div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.email}</div>`:`<div style="font-size:.7rem;color:var(--muted);font-style:italic;">Pas d'email</div>`)+
       `</div>`+
+      `<button class="btn btn-s" style="padding:4px 8px;font-size:.85rem;flex-shrink:0;letter-spacing:.1em;" title="Modifier les tests affectés" onclick="editStagiaireTests('${s.code}')">${testsBadge}</button>`+
       `<div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--gold);letter-spacing:.1em;flex-shrink:0;">${s.code}</div>`+
       `<div style="font-size:.72rem;color:${hasDone?'var(--ok)':'var(--muted)'};flex-shrink:0;">${hasDone?'✓ En cours':'–'}</div>`+
       `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;flex-shrink:0;"${emailAttr} onclick="sendInvitation('${s.prenom}','${s.nom}','${s.code}','${s.email||''}')">📧</button>`+
       `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;color:#f77a7a;flex-shrink:0;" onclick="removeStagiaireCode('${s.code}')">✕</button>`;
     el.appendChild(row);
   });
+}
+
+function editStagiaireTests(code){
+  const list=getStagiairesList();
+  const s=list.find(x=>x.code===code);if(!s)return;
+  const t=s.tests||defaultTests();
+  let modal=document.getElementById('edit-tests-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='edit-tests-modal';
+    modal.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=`
+    <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:22px;max-width:340px;width:100%;">
+      <div style="font-weight:800;font-size:1rem;margin-bottom:4px;">Tests — ${s.prenom} ${s.nom}</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Choisissez les tests à proposer à ce stagiaire.</div>
+      ${TESTS_ORDER.map(x=>`<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;"><input type="checkbox" id="et-${x.key}" ${t[x.key]?'checked':''}> ${x.emoji} ${x.name}</label>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-s" style="flex:1;" onclick="document.getElementById('edit-tests-modal').style.display='none'">Annuler</button>
+        <button class="btn btn-p" style="flex:1;" onclick="saveStagiaireTests('${code}')">Enregistrer</button>
+      </div>
+    </div>`;
+  modal.style.display='flex';
+}
+
+function saveStagiaireTests(code){
+  const list=getStagiairesList();
+  const s=list.find(x=>x.code===code);if(!s)return;
+  const tests={};
+  ALL_TESTS.forEach(k=>{tests[k]=document.getElementById('et-'+k).checked;});
+  s.tests=tests;
+  saveStagiairesList(list);
+  document.getElementById('edit-tests-modal').style.display='none';
+  renderCodesList();
+  toast('Tests mis à jour','ok');
 }
 
 function printCodes(){
@@ -3785,7 +3871,7 @@ async function renderFormateurDashboard(){
     badge.style.color=isRef?'#f5c842':'';
     badge.style.borderColor=isRef?'rgba(245,200,66,.3)':'';
   }
-  if(!isRef)renderCodesList();
+  if(!isRef){renderCodesList();renderTestCheckboxes();}
   const idEl=document.getElementById('fmt-identity');
   if(idEl&&_fmtFmt){
     const formation=_fmtFmt.formation?` · ${_fmtFmt.formation}`:'';
