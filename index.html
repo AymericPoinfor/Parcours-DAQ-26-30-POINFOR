@@ -4038,7 +4038,8 @@ function renderAdminPanel(formateurs){
                 <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="editSite('${f.email}','${(f.site||'').replace(/'/g,"\\'")}')">📍 Site</button>
                 <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="editFormation('${f.email}','${(f.formation||'').replace(/'/g,"\\'")}')">✏️ Formation</button>
                 <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="setReferentPin('${f.email}','${f.referent_pin||''}')">👁 Référent</button>
-                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f77a7a;border-color:rgba(247,122,122,.4);" onclick="deleteFormateur('${f.email}')">Désactiver</button>
+                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f5c842;border-color:rgba(245,200,66,.4);" onclick="confirmChangeFormateurPin('${f.email}','${f.prenom} ${f.nom}')">🔑 Modifier le code</button>
+                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f77a7a;border-color:rgba(247,122,122,.4);" onclick="confirmDeleteFormateur('${f.email}','${f.prenom} ${f.nom}')">🗑 Supprimer</button>
               `:`<button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#4fe08a;border-color:rgba(79,207,142,.4);" onclick="reactivateFormateur('${f.email}')">Réactiver</button>`}
             </div>
           </div>`).join('')}
@@ -4313,16 +4314,85 @@ async function setReferentPin(fmtEmail,currentPin){
   }catch(e){toast('Erreur réseau','err');}
 }
 
-async function deleteFormateur(email){
-  if(!confirm(`Désactiver le formateur ${email} ?\nSes stagiaires resteront en base mais il ne pourra plus se connecter.`))return;
+function _adminModal(id){
+  let m=document.getElementById(id);
+  if(!m){m=document.createElement('div');m.id=id;m.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:20px;';m.onclick=e=>{if(e.target===m)m.style.display='none';};document.body.appendChild(m);}
+  return m;
+}
+
+let _fmtDeleteEmail='';
+function confirmDeleteFormateur(email,nom){
+  const m=_adminModal('fmt-delete-modal');
+  _fmtDeleteEmail=email;
+  m.innerHTML=`
+    <div style="background:var(--bg);border:1px solid rgba(247,122,122,.4);border-radius:16px;padding:28px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🗑️</div>
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:8px;">Supprimer ce formateur ?</div>
+      <div style="font-size:1rem;color:var(--accent);font-weight:700;margin-bottom:4px;">${nom}</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:16px;">${email}</div>
+      <div style="font-size:.82rem;color:var(--muted);background:rgba(247,122,122,.08);border:1px solid rgba(247,122,122,.25);border-radius:8px;padding:12px 14px;margin-bottom:24px;line-height:1.5;">
+        ⚠️ Le formateur ne pourra plus se connecter. Ses stagiaires restent en base.<br>Cette action est <strong>irréversible</strong> (suppression définitive).
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-s" style="flex:1;" onclick="document.getElementById('fmt-delete-modal').style.display='none'">Annuler</button>
+        <button class="btn" style="flex:1;background:linear-gradient(135deg,#e53935,#c62828);color:#fff;font-weight:800;" onclick="executeDeleteFormateur()">Supprimer définitivement</button>
+      </div>
+    </div>`;
+  m.style.display='flex';
+}
+async function executeDeleteFormateur(){
+  document.getElementById('fmt-delete-modal').style.display='none';
   try{
-    const r=await fetch(API_URL,{method:'POST',
-      headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
-      body:JSON.stringify({action:'delete_formateur',email})});
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},body:JSON.stringify({action:'delete_formateur',email:_fmtDeleteEmail})});
     const d=await r.json();
-    if(d.ok){toast('Formateur désactivé','ok');await refreshAdminPanel();}
-    else{toast('Erreur','err');}
+    if(d.ok){toast('Formateur supprimé','ok');await refreshAdminPanel();}
+    else toast('Erreur : '+(d.error||'inconnue'),'err');
   }catch(e){toast('Erreur réseau','err');}
+}
+
+let _fmtPinEmail='',_fmtPinNom='';
+function confirmChangeFormateurPin(email,nom){
+  const m=_adminModal('fmt-pin-modal');
+  _fmtPinEmail=email;_fmtPinNom=nom;
+  m.innerHTML=`
+    <div style="background:var(--bg);border:1px solid rgba(245,200,66,.35);border-radius:16px;padding:28px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6);">
+      <div style="font-size:2rem;margin-bottom:10px;text-align:center;">🔑</div>
+      <div style="font-weight:800;font-size:1rem;margin-bottom:4px;text-align:center;">Modifier le code d'accès</div>
+      <div style="font-size:.85rem;color:var(--accent);font-weight:700;text-align:center;margin-bottom:16px;">${nom}</div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Nouveau code</label>
+        <input type="password" id="fmt-pin-new" class="ef-inp" placeholder="Nouveau code (min. 6 car.)" autocomplete="new-password">
+      </div>
+      <div class="field" style="margin-bottom:20px;">
+        <label>Confirmer le code</label>
+        <input type="password" id="fmt-pin-confirm" class="ef-inp" placeholder="Répétez le code" autocomplete="new-password">
+      </div>
+      <div id="fmt-pin-err" style="color:#f77a7a;font-size:.78rem;margin-bottom:10px;display:none;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-s" style="flex:1;" onclick="document.getElementById('fmt-pin-modal').style.display='none'">Annuler</button>
+        <button class="btn btn-p" style="flex:1;" onclick="executeChangeFormateurPin()">Enregistrer</button>
+      </div>
+    </div>`;
+  m.style.display='flex';
+  setTimeout(()=>document.getElementById('fmt-pin-new')?.focus(),100);
+}
+async function executeChangeFormateurPin(){
+  const newPin=document.getElementById('fmt-pin-new').value.trim();
+  const confirm2=document.getElementById('fmt-pin-confirm').value.trim();
+  const errEl=document.getElementById('fmt-pin-err');
+  if(newPin.length<6){errEl.textContent='Le code doit contenir au moins 6 caractères.';errEl.style.display='block';return;}
+  if(newPin!==confirm2){errEl.textContent='Les deux codes ne correspondent pas.';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  try{
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},body:JSON.stringify({action:'set_formateur_pin',email:_fmtPinEmail,pin:newPin})});
+    const d=await r.json();
+    if(d.ok){document.getElementById('fmt-pin-modal').style.display='none';toast('Code mis à jour pour '+_fmtPinNom,'ok');await refreshAdminPanel();}
+    else{errEl.textContent='Erreur serveur : '+(d.error||'inconnue');errEl.style.display='block';}
+  }catch(e){errEl.textContent='Erreur réseau.';errEl.style.display='block';}
+}
+
+async function deleteFormateur(email){
+  confirmDeleteFormateur(email,email);
 }
 
 async function changeAdminPin(){
