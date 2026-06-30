@@ -1646,6 +1646,14 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
     sessionStorage.setItem('stagiaire_auth','1');
     sessionStorage.setItem('stagiaire_code',urlCode);
     loadStagiaireData(urlCode);
+    // Garde-fou : ce code contient déjà des données pour un autre profil (ex: test du formateur lui-même)
+    const existing=JSON.parse(localStorage.getItem('parcours_profil')||'null');
+    if(existing&&existing.prenom&&(normalize(existing.prenom)!==normalize(urlPrenom)||normalize(existing.nom)!==normalize(urlNom))){
+      const clear=confirm('Ce lien (code '+urlCode+') contient déjà des données enregistrées pour « '+existing.prenom+' '+existing.nom+' », différent de « '+urlPrenom+' '+urlNom+' ».\n\nEffacer ces données pour créer le profil de '+urlPrenom+' '+urlNom+' ?');
+      if(clear){
+        ['parcours_profil','parcours_qimi','parcours_riasec','parcours_valeurs','parcours_competences','parcours_cognitif','parcours_metiers','parcours_employeurs'].forEach(k=>localStorage.removeItem(k));
+      }
+    }
     document.getElementById('tb-title').textContent='Parcours de '+urlPrenom;
     history.replaceState(null,'',window.location.pathname);
     proceedAfterAuth();
