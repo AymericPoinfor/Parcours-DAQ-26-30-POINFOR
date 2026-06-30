@@ -567,7 +567,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div class="chip"><div class="cn">3</div>Test RIASEC</div>
     <div class="chip"><div class="cn">4</div>Valeurs pro</div>
     <div class="chip"><div class="cn">5</div>Compétences</div>
-    <div class="chip"><div class="cn">6</div>Capacités cognitives</div>
+    <div class="chip"><div class="cn">6</div>Profil cognitif</div>
     <div class="chip"><div class="cn">7</div>Mes 3 métiers</div>
     <div class="chip"><div class="cn">8</div>Plan d'action</div>
   </div>
@@ -881,18 +881,18 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 <!-- ══ COGNITIF INTRO ══ -->
 <div class="scr" id="scr-cog-instr">
   <div class="card" style="text-align:center;margin-bottom:14px;">
-    <div class="ti-ico">🧮</div>
-    <div class="ti-name">Évaluation des capacités cognitives de base</div>
-    <div class="ti-desc">32 petits exercices de positionnement (logique, calcul, vocabulaire, attention). Ce n'est pas un test de QI : il sert juste à repérer vos points d'appui.</div>
+    <div class="ti-ico">🧭</div>
+    <div class="ti-name">Profil d'apprentissage et de fonctionnement cognitif</div>
+    <div class="ti-desc">32 petits exercices pour mieux comprendre votre façon d'apprendre (attention, mémoire, compréhension, organisation...). Ce n'est pas un test de QI ni un diagnostic : il sert juste à mieux vous accompagner.</div>
     <div class="ti-badges">
       <div class="ti-badge">📋 32 questions</div>
       <div class="ti-badge">⏱ ~15 min</div>
-      <div class="ti-badge">🏆 4 domaines</div>
+      <div class="ti-badge">🏆 8 domaines</div>
     </div>
   </div>
   <div class="card">
     <div class="instr-title">Comment répondre ?</div>
-    <p style="color:var(--muted);margin-bottom:16px;font-size:.92rem;line-height:1.6;">Chaque question propose plusieurs réponses possibles : choisissez celle qui vous semble correcte. Répondez à votre rythme, sans stress — il n'y a pas de chronomètre.</p>
+    <p style="color:var(--muted);margin-bottom:16px;font-size:.92rem;line-height:1.6;">Chaque question propose plusieurs réponses possibles : choisissez celle qui vous semble correcte. Pour certaines questions, un texte à retenir s'affichera d'abord puis disparaîtra avant la question — c'est normal, c'est voulu. Répondez à votre rythme, sans stress.</p>
     <div class="note">Faites de votre mieux, sans vous inquiéter du résultat : ces exercices servent uniquement à mieux vous accompagner.</div>
     <button class="btn btn-p btn-full" onclick="startCog()">Démarrer →</button>
   </div>
@@ -903,12 +903,18 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   <div class="card">
     <div class="q-hd">
       <span class="q-num">Question <span id="cq-num">1</span> / 32</span>
-      <span class="q-badge" id="cq-badge">🧮 Raisonnement logique</span>
+      <span class="q-badge" id="cq-badge">👁️ Attention</span>
     </div>
-    <div class="q-txt" id="cq-txt">…</div>
-    <div class="cog-opts" id="cq-opts"></div>
-    <div class="q-nav">
-      <button class="back-lnk" id="cq-back" onclick="cogBack()" style="display:none">← Question précédente</button>
+    <div id="cq-phase-memo">
+      <div class="q-txt" id="cq-memo-txt" style="margin-bottom:18px;">…</div>
+      <button class="btn btn-p btn-full" onclick="cogRevealQuestion()">J'ai mémorisé, je réponds →</button>
+    </div>
+    <div id="cq-phase-question">
+      <div class="q-txt" id="cq-txt">…</div>
+      <div class="cog-opts" id="cq-opts"></div>
+      <div class="q-nav">
+        <button class="back-lnk" id="cq-back" onclick="cogBack()" style="display:none">← Question précédente</button>
+      </div>
     </div>
   </div>
 </div>
@@ -916,7 +922,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 <!-- ══ COGNITIF RESULTS ══ -->
 <div class="scr" id="scr-cog-res">
   <div class="card" id="cog-res-hidden" style="display:none;text-align:center;">
-    <div class="res-badge">✓ Évaluation terminée</div>
+    <div class="res-badge">✓ Profil cognitif réalisé</div>
     <div style="font-size:1.6rem;font-weight:800;margin:14px 0 8px;">Merci !</div>
     <div style="font-size:.9rem;color:var(--muted);margin-bottom:22px;">Vos réponses ont bien été enregistrées et transmises à votre formateur/référent.</div>
     <div class="r-actions" style="justify-content:center;">
@@ -924,14 +930,13 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     </div>
   </div>
   <div class="card" id="cog-res-full" style="display:none;">
-    <div style="text-align:center;margin-bottom:22px;">
-      <div class="res-badge">✓ Évaluation terminée</div>
-      <div style="font-size:1.8rem;font-weight:800;margin-bottom:4px;">Vos résultats</div>
+    <div style="text-align:center;margin-bottom:18px;">
+      <div class="res-badge">✓ Profil cognitif réalisé</div>
+      <div style="font-size:1.8rem;font-weight:800;margin-bottom:4px;">Votre profil d'apprentissage</div>
       <div style="font-size:.88rem;color:var(--muted)" id="cr-date"></div>
       <div style="font-size:1rem;font-weight:700;margin-top:6px;color:var(--accent)" id="cr-name"></div>
     </div>
-    <div class="bars" id="cr-bars"></div>
-    <div class="descs" id="cr-descs"></div>
+    <div id="cr-rows"></div>
     <div class="r-actions">
       <button class="btn btn-g btn-lg" id="cr-next-btn" onclick="goAfter('cognitif')">Choisir mes 3 métiers →</button>
     </div>
@@ -1307,7 +1312,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   </div>
   <!-- Évaluation cognitive -->
   <div style="border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;margin-bottom:12px;">
-    <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Capacités cognitives de base</div>
+    <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Profil d'apprentissage et de fonctionnement cognitif</div>
     <div id="pbc-cognitif"></div>
   </div>
   <!-- Métiers -->
@@ -1499,50 +1504,66 @@ const SLBLS=['Jamais','Rarement','Parfois','Souvent','Toujours'];
 function sCat(i){return SKEYS[i%8];}
 
 // ══════════════════════════════════════════
-//  ÉVALUATION DES CAPACITÉS COGNITIVES DE BASE
+//  PROFIL D'APPRENTISSAGE ET DE FONCTIONNEMENT COGNITIF
 // ══════════════════════════════════════════
 const COGCAT={
-  LOG:{color:'#2a7de0',name:'Raisonnement logique',emoji:'🧮',descOk:"À l'aise avec les suites logiques et la déduction.",descLow:"Bases à consolider sur les suites logiques et la déduction."},
-  NUM:{color:'#4aae2a',name:'Raisonnement numérique',emoji:'🔢',descOk:"À l'aise avec le calcul et les proportions.",descLow:"Bases à consolider sur le calcul et les proportions."},
-  VERB:{color:'#8c5ce0',name:'Compréhension verbale',emoji:'📖',descOk:"Bonne compréhension du vocabulaire et des consignes.",descLow:"Vocabulaire et compréhension de consignes à consolider."},
-  ATT:{color:'#d4a017',name:'Attention & concentration',emoji:'👁️',descOk:"Bon niveau d'attention aux détails.",descLow:"Attention aux détails à renforcer."}
+  ATT:{color:'#d4a017',name:'Attention',emoji:'👁️',desc:"Rester concentré, repérer une information."},
+  MEMI:{color:'#2a7de0',name:'Mémoire immédiate',emoji:'📌',desc:"Retenir une consigne courte."},
+  MEMT:{color:'#8c5ce0',name:'Mémoire de travail',emoji:'🧠',desc:"Manipuler plusieurs informations en même temps."},
+  COMPO:{color:'#e05c2a',name:'Compréhension orale',emoji:'👂',desc:"Comprendre une consigne entendue."},
+  COMPE:{color:'#4aae2a',name:'Compréhension écrite',emoji:'📖',desc:"Comprendre une consigne écrite."},
+  LOG:{color:'#2aae6f',name:'Raisonnement logique',emoji:'🧩',desc:"Déduire, classer, résoudre."},
+  ORG:{color:'#40b8c8',name:'Organisation',emoji:'🗂️',desc:"Planifier les étapes d'une tâche."},
+  FLEX:{color:'#e04f8c',name:'Flexibilité',emoji:'🔄',desc:"Changer de stratégie si la première ne fonctionne pas."}
 };
-const COGKEYS=['LOG','NUM','VERB','ATT'];
+const COGKEYS=['ATT','MEMI','MEMT','COMPO','COMPE','LOG','ORG','FLEX'];
+// type 'mcq' : la question reste affichée pendant la réponse.
+// type 'memo' : un texte à retenir est montré puis masqué avant la question (mémoire / compréhension orale simulée).
 const COGQ=[
-  {q:'Complétez la suite : 2, 4, 6, 8, ?',opts:['9','10','11','12'],a:1},
-  {q:'12 + 8 = ?',opts:['18','20','22','24'],a:1},
-  {q:'Quel est le synonyme de « rapide » ?',opts:['Vif','Lent','Calme','Lourd'],a:0},
-  {q:'Combien de fois la lettre « a » apparaît dans « banana » ?',opts:['2','3','4','5'],a:1},
-  {q:'Quel mot ne va pas avec les autres ?',opts:['Pomme','Banane','Carotte','Poire'],a:2},
-  {q:'Un article à 40€ est soldé à -25%. Quel est le nouveau prix ?',opts:['25€','30€','35€','38€'],a:1},
-  {q:'Quel est l’antonyme de « grand » ?',opts:['Immense','Large','Petit','Haut'],a:2},
-  {q:'Lequel de ces mots est mal orthographié ?',opts:['Maison','Maison','Maisom','Maison'],a:2},
-  {q:'Tous les chats sont des animaux. Félix est un chat. Donc Félix est…',opts:['un animal','un chien','une plante','un objet'],a:0},
-  {q:'7 × 6 = ?',opts:['36','40','42','48'],a:2},
-  {q:'Complétez : « Le ___ aboie. »',opts:['Chat','Chien','Oiseau','Poisson'],a:1},
-  {q:'Dans la suite « 4 7 2 9 2 5 2 8 », combien de fois apparaît le chiffre 2 ?',opts:['2','3','4','5'],a:1},
-  {q:'Complétez la suite : A, C, E, G, ?',opts:['H','I','J','K'],a:1},
-  {q:'3 articles coûtent 9€. Combien coûtent 5 articles au même prix unitaire ?',opts:['12€','15€','18€','21€'],a:1},
-  {q:'« Ponctuel » signifie…',opts:["Qui arrive à l'heure","Qui est en retard","Qui est absent","Qui est bruyant"],a:0},
-  {q:'Lequel de ces mots contient une erreur ?',opts:['Développement','Environnement','Gouvernement','Apartement'],a:3},
-  {q:'Quel élément est l’intrus dans cette liste ?',opts:['Triangle','Carré','Cercle','Rouge'],a:3},
-  {q:'Quelle est la fraction la plus grande ?',opts:['1/2','1/3','1/4','1/5'],a:0},
-  {q:'Quel est le pluriel de « cheval » ?',opts:['Chevals','Chevaux','Chevales','Chevaus'],a:1},
-  {q:'Combien de fois la lettre « e » apparaît dans « anniversaire » ?',opts:['1','2','3','4'],a:1},
-  {q:'Complétez la suite : 1, 3, 6, 10, ?',opts:['12','14','15','16'],a:2},
-  {q:'100 − 37 = ?',opts:['53','63','67','73'],a:1},
-  {q:'Quel mot est un synonyme de « difficile » ?',opts:['Ardu','Simple','Facile','Clair'],a:0},
-  {q:'L’opération « 34 + 18 = 53 » est-elle exacte ?',opts:['Vrai','Faux'],a:1},
-  {q:'Si demain est dimanche, quel jour sommes-nous aujourd’hui ?',opts:['Vendredi','Samedi','Lundi','Mardi'],a:1},
-  {q:'Un trajet de 60 km est parcouru en 1h30. Quelle est la vitesse moyenne ?',opts:['30 km/h','40 km/h','45 km/h','50 km/h'],a:1},
-  {q:'« Il a accepté à contrecœur » signifie qu’il a accepté…',opts:['Avec joie','À regret','Avec enthousiasme','Immédiatement'],a:1},
-  {q:'Quelle référence est strictement identique au modèle « B47K9 » ?',opts:['B47K9','B47K0','B74K9','B47Q9'],a:0},
-  {q:'Complétez la suite : 3, 6, 12, 24, ?',opts:['30','36','48','52'],a:2},
-  {q:'Complétez la suite : 5, 10, 20, 40, ?',opts:['45','60','70','80'],a:3},
-  {q:'Quel mot est correctement orthographié ?',opts:['Dévellopper','Développer','Développper','Dévélopper'],a:1},
-  {q:'Combien de mots commencent par la lettre « p » : porte, table, panier, chaise, plante ?',opts:['1','2','3','4'],a:2}
+  {l:'ATT',type:'mcq',q:'Combien de fois la lettre « a » apparaît dans « banana » ?',opts:['2','3','4','5'],a:1},
+  {l:'MEMI',type:'memo',show:'Retenez ces trois mots : chat, table, lune.',q:'Quel était le 2ᵉ mot ?',opts:['Chat','Table','Lune','Stylo'],a:1},
+  {l:'MEMT',type:'memo',show:'Retenez ces deux mots : porte, fenêtre. Calculez ensuite 6 + 3 dans votre tête.',q:'Quel était le 1ᵉʳ mot à retenir ?',opts:['Porte','Fenêtre','Mur','Toit'],a:0},
+  {l:'COMPO',type:'memo',show:'Consigne : rangez d\'abord les crayons, puis sortez votre cahier.',q:'Que deviez-vous faire en premier ?',opts:['Sortir le cahier','Ranger les crayons','Lever la main','Fermer la porte'],a:1},
+  {l:'COMPE',type:'mcq',q:'« Cochez la case uniquement si vous êtes disponible le matin. » Que faire si vous êtes disponible l\'après-midi seulement ?',opts:['Cocher la case','Ne pas cocher la case','Cocher deux fois','Écrire une lettre'],a:1},
+  {l:'LOG',type:'mcq',q:'Complétez la suite : 2, 4, 6, 8, ?',opts:['9','10','11','12'],a:1},
+  {l:'ORG',type:'mcq',q:'Pour préparer un café, quel est le bon ordre des étapes ?',opts:["Boire, verser l'eau, faire chauffer","Faire chauffer l'eau, verser sur le café, boire","Verser le café dans la tasse, boire, faire chauffer","Boire, faire chauffer, verser"],a:1},
+  {l:'FLEX',type:'mcq',q:'Une porte ne s\'ouvre pas en poussant. Que faites-vous ?',opts:['Continuer à pousser indéfiniment','Essayer de tirer','Abandonner immédiatement','Casser la porte'],a:1},
+
+  {l:'ATT',type:'mcq',q:'Lequel de ces mots est mal orthographié ?',opts:['Maison','Maison','Maisom','Maison'],a:2},
+  {l:'MEMI',type:'memo',show:'Retenez ce numéro : 5 8 2 9.',q:'Quel était le 3ᵉ chiffre ?',opts:['5','8','2','9'],a:2},
+  {l:'MEMT',type:'memo',show:'Retenez ces trois chiffres : 4, 9, 1. Additionnez ensuite 2 + 2 dans votre tête.',q:'Quel était le chiffre du milieu à retenir ?',opts:['4','9','1','7'],a:1},
+  {l:'COMPO',type:'memo',show:'Consigne : allez chercher la boîte bleue qui se trouve sur l\'étagère du haut.',q:'Où se trouve la boîte à aller chercher ?',opts:['Sur le bureau',"Sur l'étagère du haut",'Dans le tiroir','Par terre'],a:1},
+  {l:'COMPE',type:'mcq',q:'« Numérotez les documents de 1 à 5 en commençant par le plus récent. » Quel document portera le numéro 1 ?',opts:['Le plus ancien','Le plus récent','Le plus grand','N\'importe lequel'],a:1},
+  {l:'LOG',type:'mcq',q:'Quel mot ne va pas avec les autres ?',opts:['Pomme','Banane','Carotte','Poire'],a:2},
+  {l:'ORG',type:'mcq',q:'Avant de partir à un entretien d\'embauche, que faites-vous en premier ?',opts:['Préparer ses documents et son itinéraire la veille','S\'habiller au dernier moment','Improviser sur place','Arriver sans avoir vérifié l\'adresse'],a:0},
+  {l:'FLEX',type:'mcq',q:'Votre méthode habituelle pour résoudre un problème ne fonctionne pas cette fois. Que faites-vous ?',opts:['Refaire exactement la même chose','Essayer une autre méthode','Arrêter de chercher','Attendre que ça se résolve seul'],a:1},
+
+  {l:'ATT',type:'mcq',q:'Dans la suite « 4 7 2 9 2 5 2 8 », combien de fois apparaît le chiffre 2 ?',opts:['2','3','4','5'],a:1},
+  {l:'MEMI',type:'memo',show:'Retenez cette consigne : prenez le stylo rouge, puis posez-le sur le livre.',q:'Que deviez-vous poser sur le livre ?',opts:['Le crayon','Le stylo rouge','Le cahier','La gomme'],a:1},
+  {l:'MEMT',type:'memo',show:'On vous donne 3 consignes : levez la main, comptez jusqu\'à 3, puis tapez du pied.',q:'Quelle était la 2ᵉ consigne ?',opts:['Lever la main',"Compter jusqu'à 3",'Taper du pied','Fermer les yeux'],a:1},
+  {l:'COMPO',type:'memo',show:'Consigne : si vous entendez la cloche, arrêtez votre travail et levez-vous.',q:'Que devez-vous faire si vous entendez la cloche ?',opts:['Continuer de travailler','Vous arrêter et vous lever','Sortir de la salle','Rien'],a:1},
+  {l:'COMPE',type:'mcq',q:'« Répondez par oui ou par non, sauf si la question ne vous concerne pas. » Que faire si la question ne vous concerne pas ?',opts:['Répondre oui','Répondre non','Ne pas répondre','Répondre les deux'],a:2},
+  {l:'LOG',type:'mcq',q:'Tous les chats sont des animaux. Félix est un chat. Donc Félix est…',opts:['un animal','un chien','une plante','un objet'],a:0},
+  {l:'ORG',type:'mcq',q:'Pour ranger une pièce efficacement, quelle est la meilleure démarche ?',opts:['Tout ranger au hasard','Trier d\'abord, puis ranger chaque catégorie','Ranger sans trier','Ne rien faire'],a:1},
+  {l:'FLEX',type:'mcq',q:'On change les consignes en cours de tâche. Quelle est la meilleure réaction ?',opts:['Ignorer le changement','S\'adapter aux nouvelles consignes','Refuser de continuer','Se fâcher'],a:1},
+
+  {l:'ATT',type:'mcq',q:'Combien de mots commencent par la lettre « p » : porte, table, panier, chaise, plante ?',opts:['1','2','3','4'],a:2},
+  {l:'MEMI',type:'memo',show:'Retenez ces trois couleurs : vert, bleu, jaune.',q:'Quelle couleur venait en dernier ?',opts:['Vert','Bleu','Jaune','Rouge'],a:2},
+  {l:'MEMT',type:'memo',show:'Retenez ces deux mots dans l\'ordre inverse : lundi, mardi.',q:'Dans l\'ordre inverse, quel mot devez-vous dire en premier ?',opts:['Lundi','Mardi','Mercredi','Jeudi'],a:1},
+  {l:'COMPO',type:'memo',show:'Consigne : prenez deux feuilles, donnez-en une à votre voisin.',q:'Combien de feuilles devez-vous prendre au total ?',opts:['Une','Deux','Trois','Quatre'],a:1},
+  {l:'COMPE',type:'mcq',q:'« Avant de signer, relisez attentivement le document. » Quelle est la 1ʳᵉ étape avant de signer ?',opts:['Signer','Relire le document','Le jeter','Le photocopier'],a:1},
+  {l:'LOG',type:'mcq',q:'Complétez la suite : 1, 3, 6, 10, ?',opts:['12','14','15','16'],a:2},
+  {l:'ORG',type:'mcq',q:'Vous devez envoyer un dossier de candidature. Quelle est la dernière étape avant l\'envoi ?',opts:['Rédiger le CV','Relire l\'ensemble du dossier','Choisir l\'offre','Chercher l\'adresse mail'],a:1},
+  {l:'FLEX',type:'mcq',q:'Un outil que vous comptiez utiliser n\'est pas disponible. Que faites-vous ?',opts:['Chercher une solution alternative','Abandonner la tâche','Attendre sans rien faire','Refaire la même demande en boucle'],a:0}
 ];
-function cogCat(i){return COGKEYS[i%4];}
+function cogCat(i){return COGQ[i].l;}
+const COGLEVELS=[
+  {key:'stable',label:'Stable',color:'#2e7d32',min:4,desc:'Compétence mobilisable facilement.'},
+  {key:'consolider',label:'À consolider',color:'#1e88e5',min:3,desc:'Compétence présente mais irrégulière.'},
+  {key:'fragile',label:'Fragile',color:'#f39c12',min:1,desc:"Besoin d'aide, d'outils ou de répétition."},
+  {key:'prioritaire',label:'Prioritaire',color:'#e53935',min:0,desc:'Adaptation nécessaire du parcours.'}
+];
+function cogLevelFor(correct){return COGLEVELS.find(l=>correct>=l.min);}
 
 // ══════════════════════════════════════════
 //  STATE
@@ -1553,7 +1574,7 @@ let rScores={R:0,I:0,A:0,S:0,E:0,C:0},rMax={R:0,I:0,A:0,S:0,E:0,C:0};
 let rSecIdx=0,rQIdx=0;
 let valeursAns=new Array(40).fill(null),valeursCur=0;
 let skillsAns=new Array(40).fill(null),skillsCur=0;
-let cogAns=new Array(32).fill(null),cogCur=0;
+let cogAns=new Array(32).fill(null),cogCur=0,cogMemoSeen=new Array(32).fill(false);
 
 // ══════════════════════════════════════════
 //  UTILITIES
@@ -1693,7 +1714,7 @@ const TESTS_ORDER=[
   {key:'riasec',name:'RIASEC',emoji:'🔬',label:'Démarrer le test RIASEC →',start:()=>goRiasecIntro()},
   {key:'valeurs',name:'Valeurs',emoji:'⚖️',label:'Test Valeurs professionnelles →',start:()=>goValeursIntro()},
   {key:'competences',name:'Compétences',emoji:'🧩',label:'Test Compétences transversales →',start:()=>goSkillsIntro()},
-  {key:'cognitif',name:'Cognitif',emoji:'🧮',label:'Évaluation des capacités cognitives →',start:()=>goCogIntro(),hideable:true}
+  {key:'cognitif',name:'Profil cognitif',emoji:'🧭',label:"Profil d'apprentissage et de fonctionnement cognitif →",start:()=>goCogIntro(),hideable:true}
 ];
 function getAssignedTests(){
   try{return JSON.parse(localStorage.getItem('parcours_tests_assigned')||'null')||defaultTests();}
@@ -1988,10 +2009,10 @@ function showSkillsRes(){
 // ══════════════════════════════════════════
 //  ÉVALUATION COGNITIVE
 // ══════════════════════════════════════════
-function goCogIntro(){go('scr-cog-instr');setpg(96);setStep('Étape 6 / 8');setTitle('Évaluation cognitive');}
+function goCogIntro(){go('scr-cog-instr');setpg(96);setStep('Étape 6 / 8');setTitle('Profil cognitif');}
 
 function startCog(){
-  cogAns=new Array(32).fill(null);cogCur=0;
+  cogAns=new Array(32).fill(null);cogCur=0;cogMemoSeen=new Array(32).fill(false);
   go('scr-cog-q');renderCQ();
 }
 
@@ -2001,8 +2022,16 @@ function renderCQ(){
   const badge=document.getElementById('cq-badge');
   badge.textContent=info.emoji+' '+info.name;
   badge.style.background=info.color;
-  document.getElementById('cq-txt').textContent=q.q;
   document.getElementById('cq-back').style.display=i>0?'inline':'none';
+  const memoPhase=q.type==='memo'&&!cogMemoSeen[i];
+  document.getElementById('cq-phase-memo').style.display=memoPhase?'block':'none';
+  document.getElementById('cq-phase-question').style.display=memoPhase?'none':'block';
+  if(memoPhase){
+    document.getElementById('cq-memo-txt').textContent=q.show;
+    setCounter('Question '+(i+1)+' / 32');
+    return;
+  }
+  document.getElementById('cq-txt').textContent=q.q;
   const ans=cogAns[i];
   const row=document.getElementById('cq-opts');
   row.innerHTML='';
@@ -2017,6 +2046,8 @@ function renderCQ(){
   setpg(96+Math.round((done/32)*3));
   setCounter('Question '+(i+1)+' / 32');
 }
+
+function cogRevealQuestion(){cogMemoSeen[cogCur]=true;renderCQ();}
 
 function cogSel(idx){
   cogAns[cogCur]=idx;
@@ -2047,17 +2078,26 @@ function showCogRes(){
   document.getElementById('cog-res-hidden').style.display=hidden?'block':'none';
   document.getElementById('cog-res-full').style.display=hidden?'none':'block';
   if(!hidden){
-    document.getElementById('cr-date').textContent='Évaluation réalisée le '+now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+    document.getElementById('cr-date').textContent='Réalisé le '+now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
     const p=JSON.parse(localStorage.getItem('parcours_profil')||'{}');
     document.getElementById('cr-name').textContent=p.prenom?p.prenom+' '+p.nom:'';
-    const bars=document.getElementById('cr-bars');bars.innerHTML='';
-    COGKEYS.forEach(k=>{const c=COGCAT[k];const pct=(scores[k]/8)*100;const r=document.createElement('div');r.className='bar-row';r.innerHTML=`<div class="bar-lbl"><span>${c.emoji}</span><span style="color:${c.color}">${c.name}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c.color}"></div></div><div class="bar-val">${scores[k]}/8</div>`;bars.appendChild(r);});
-    const descs=document.getElementById('cr-descs');descs.innerHTML='';
-    COGKEYS.forEach(k=>{const c=COGCAT[k];const pct=(scores[k]/8)*100;const txt=pct>=63?c.descOk:c.descLow;const d=document.createElement('div');d.className='desc-item';d.innerHTML=`<strong>${c.emoji} ${c.name}</strong> — ${txt}`;descs.appendChild(d);});
+    document.getElementById('cr-rows').innerHTML=cogLevelsHtml(scores);
   }
   document.getElementById('cr-next-btn').textContent=labelAfter('cognitif');
   document.getElementById('cr-next-btn-hidden').textContent=labelAfter('cognitif');
-  go('scr-cog-res');setpg(99);setStep('Évaluation ✓');setTitle('Résultats évaluation');
+  go('scr-cog-res');setpg(99);setStep('Profil cognitif ✓');setTitle('Résultats — Profil cognitif');
+}
+
+// Rendu partagé (résultats stagiaire + bilan PDF + fiche admin)
+function cogLevelsHtml(scores){
+  return COGKEYS.map(k=>{
+    const c=COGCAT[k];const correct=scores[k];const lvl=cogLevelFor(correct);
+    return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+      <span style="font-size:1.1rem;flex-shrink:0;">${c.emoji}</span>
+      <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.85rem;">${c.name}</div><div style="font-size:.72rem;color:var(--muted);">${c.desc}</div></div>
+      <span style="font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:20px;background:${lvl.color}22;color:${lvl.color};border:1px solid ${lvl.color}55;flex-shrink:0;">${lvl.label}</span>
+    </div>`;
+  }).join('');
 }
 
 // ══════════════════════════════════════════
@@ -3174,15 +3214,15 @@ function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList){
           `<span style="margin-left:6px;font-weight:800;color:#1e4dd8;">${pct}%</span></div>`;
       }).join('')+`</div>`;
   }else{cEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Non complété</div>';}
-  // Évaluation cognitive
+  // Profil cognitif (niveaux qualitatifs, pas de note globale)
   const gEl=document.getElementById('pbc-cognitif');
   if(gd&&gd.scores){
     gEl.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px;">`+
       COGKEYS.map(k=>{
-        const c=COGCAT[k];const pct=Math.round((gd.scores[k]/8)*100);
+        const c=COGCAT[k];const lvl=cogLevelFor(gd.scores[k]);
         return`<div style="border:1px solid #dde5ff;border-radius:5px;padding:5px 9px;font-size:8pt;">`+
           `<span style="font-size:10pt;">${c.emoji}</span> <b>${c.name}</b>`+
-          `<span style="margin-left:6px;font-weight:800;color:#1e4dd8;">${pct}%</span></div>`;
+          `<span style="margin-left:6px;font-weight:800;color:${lvl.color};">${lvl.label}</span></div>`;
       }).join('')+`</div>`;
   }else{gEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Non complété</div>';}
   // Métiers
@@ -4267,8 +4307,8 @@ function sendMailToFormateur(){
   }
 
   if(cognitif&&cognitif.scores&&!getHiddenTests().cognitif){
-    body+='CAPACITÉS COGNITIVES DE BASE\r\n';
-    COGKEYS.forEach(k=>{const c=COGCAT[k];body+=c.emoji+' '+c.name+' : '+cognitif.scores[k]+'/8\r\n';});
+    body+='PROFIL D\'APPRENTISSAGE ET DE FONCTIONNEMENT COGNITIF\r\n';
+    COGKEYS.forEach(k=>{const c=COGCAT[k];const lvl=cogLevelFor(cognitif.scores[k]);body+=c.emoji+' '+c.name+' : '+lvl.label+'\r\n';});
     body+='\r\n';
   }
 
@@ -4489,13 +4529,7 @@ function showStagiaireDetail(idx){
   // ── Évaluation cognitive (toujours visible côté formateur, même si masquée au stagiaire) ──
   let cognitifHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
   if(gd?.scores){
-    cognitifHtml=`<div style="display:flex;flex-wrap:wrap;gap:8px;">`+COGKEYS.map(k=>{
-      const c=COGCAT[k];const pct=Math.round((gd.scores[k]/8)*100);
-      return`<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:6px;">
-        <span>${c.emoji}</span><span style="font-size:.82rem;font-weight:700;">${c.name}</span>
-        <span style="font-weight:800;color:${c.color};font-size:.78rem;">${gd.scores[k]}/8</span>
-      </div>`;
-    }).join('')+`</div>`;
+    cognitifHtml=cogLevelsHtml(gd.scores);
   }
 
   // ── Métiers ──
@@ -4608,7 +4642,7 @@ function showStagiaireDetail(idx){
           <div>${sec('Valeurs professionnelles','⚖️',valeursHtml)}</div>
           <div>${sec('Compétences transversales','🧩',competencesHtml)}</div>
         </div>
-        ${sec('Capacités cognitives de base','🧮',cognitifHtml)}
+        ${sec('Profil d\'apprentissage et de fonctionnement cognitif','🧮',cognitifHtml)}
         ${sec('Métiers cibles','💼',metiersHtml)}
         ${hasPlans?sec('Plans A / B / C','🗺️',plansHtml):''}
         ${sec('Plan d\'action — Employeurs','📋',planHtml)}
