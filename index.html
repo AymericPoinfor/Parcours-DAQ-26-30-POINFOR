@@ -2511,12 +2511,7 @@ function exportJSON(){
   a.click();URL.revokeObjectURL(url);
   toast('JSON exporté !','ok');
 }
-function genBilanPDF(){
-  const p=JSON.parse(localStorage.getItem('parcours_profil')||'null');
-  const qd=JSON.parse(localStorage.getItem('parcours_qimi')||'null');
-  const rd=JSON.parse(localStorage.getItem('parcours_riasec')||'null');
-  const md=JSON.parse(localStorage.getItem('parcours_metiers')||'null');
-  if(!p){toast('Profil manquant','err');return;}
+function fillBilanPDF(p,qd,rd,md,empList){
   const name=(p.prenom||'Stagiaire')+' '+(p.nom||'');
   document.getElementById('pbc-name').textContent=name.trim();
   document.getElementById('pbc-date').textContent='Bilan du '+new Date().toLocaleDateString('fr-FR');
@@ -2576,14 +2571,15 @@ function genBilanPDF(){
   }else{mEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Non complété</div>';}
   // Employeurs
   const eEl=document.getElementById('pbc-emps');
-  if(employers.length){
+  const emps=empList||[];
+  if(emps.length){
     eEl.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:7.5pt;">`+
       `<tr style="background:#f5f7ff;"><th style="padding:4px 7px;text-align:left;border-bottom:1px solid #dde5ff;">Entreprise</th>`+
       `<th style="padding:4px 7px;text-align:left;border-bottom:1px solid #dde5ff;">Ville</th>`+
       `<th style="padding:4px 7px;text-align:left;border-bottom:1px solid #dde5ff;">Métier</th>`+
       `<th style="padding:4px 7px;text-align:left;border-bottom:1px solid #dde5ff;">Démarches</th>`+
       `<th style="padding:4px 7px;text-align:left;border-bottom:1px solid #dde5ff;">Réponse</th></tr>`+
-      employers.map(emp=>{
+      emps.map(emp=>{
         const steps=[emp.steps.contacte?'📞 Contacté':'',emp.steps.cv?'📄 CV envoyé':'',emp.steps.lm?'✉️ LM envoyée':''].filter(Boolean).join('<br>');
         const rep=emp.steps.reponse==='oui'?'✅ Accepté':emp.steps.reponse==='non'?'❌ Refusé':emp.steps.reponse==='attente'?'⏳ En attente':'—';
         const bc=emp.steps.reponse==='oui'?'#e8f5e9':emp.steps.reponse==='non'?'#ffebee':'#fff';
@@ -2596,12 +2592,37 @@ function genBilanPDF(){
           `<td style="padding:5px 7px;font-weight:700;">${rep}</td></tr>`;
       }).join('')+`</table>`;
   }else{eEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Aucun employeur ajouté</div>';}
-  // Génération PDF
+}
+
+function genBilanPDF(){
+  const p=JSON.parse(localStorage.getItem('parcours_profil')||'null');
+  const qd=JSON.parse(localStorage.getItem('parcours_qimi')||'null');
+  const rd=JSON.parse(localStorage.getItem('parcours_riasec')||'null');
+  const md=JSON.parse(localStorage.getItem('parcours_metiers')||'null');
+  if(!p){toast('Profil manquant','err');return;}
+  fillBilanPDF(p,qd,rd,md,employers);
   toast('Génération du bilan…');
   const fn='BilanComplet_'+(p.prenom||'Stagiaire')+'_'+(p.nom||'')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
   captureAndSave(document.getElementById('print-bilan-complet'),fn)
     .then(()=>toast('Bilan PDF enregistré !','ok'))
     .catch(()=>toast('Erreur PDF','err'));
+}
+
+async function genBilanPDFFromSnap(idx){
+  const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
+  const entry=liste[idx];if(!entry)return;
+  const snap=entry.snap;
+  const p=snap?.profil||{};
+  const qd=snap?.qimi;
+  const rd=snap?.riasec;
+  const md=snap?.metiers;
+  const empList=snap?.employeurs?.list||[];
+  if(!qd&&!rd&&!md){toast('Aucun résultat disponible pour ce stagiaire','err');return;}
+  fillBilanPDF(p,qd,rd,md,empList);
+  toast('Génération du bilan…');
+  const fn='BilanComplet_'+(p.prenom||'Stagiaire')+'_'+(p.nom||'')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
+  try{await captureAndSave(document.getElementById('print-bilan-complet'),fn);toast('Bilan PDF enregistré !','ok');}
+  catch(e){toast('Erreur PDF','err');}
 }
 
 function exportExcel(){
@@ -3800,6 +3821,7 @@ function showStagiaireDetail(idx){
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${empList.length?'rgba(79,142,247,.2)':'rgba(255,255,255,.08)'};color:${empList.length?'#6aacff':'#aaa'};">${empList.length} employeur${empList.length>1?'s':''}</span>
           </div>
         </div>
+        ${(qd||rd||md)?`<button onclick="genBilanPDFFromSnap(${idx})" class="btn btn-s" style="padding:8px 14px;font-size:.78rem;flex-shrink:0;white-space:nowrap;">📄 Bilan PDF</button>`:''}
         <button onclick="document.getElementById('stagiaire-detail-modal').style.display='none'" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;flex-shrink:0;">✕</button>
       </div>
       <!-- Body -->
