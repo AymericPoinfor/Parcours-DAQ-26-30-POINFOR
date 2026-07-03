@@ -4747,11 +4747,12 @@ async function executeDeleteStagiaire(){
   const newCodes=getStagiairesList().filter(s=>normalize(s.email||'')!==normalize(email));
   saveStagiairesList(newCodes);
   // Actualiser les vues
-  if(isAdmin&&typeof _adminAllStagiaires!=='undefined'){
-    _adminAllStagiaires=_adminAllStagiaires.filter(s=>(s.profil?.email||s._meta?.email||s.email||'')!==email);
-    renderAdminGlobal();
+  if(isAdmin&&typeof loadAdminGlobalView!=='undefined'){
+    // Rechargement complet depuis serveur pour mettre à jour tous les compteurs
+    await loadAdminGlobalView(_adminFormateurs);
+  }else if(_fmtPin){
+    renderFormateurDashboard();
   }
-  if(_fmtPin)renderFormateurDashboard();
   toast(nom+' — profil supprimé','ok');
 }
 function exportProfilJSON(idx){
