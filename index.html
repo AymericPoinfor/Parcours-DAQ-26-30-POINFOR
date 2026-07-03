@@ -4332,8 +4332,8 @@ function renderAdminGlobal(data){
     const p=s.profil||{};const etape=s.etape||'';
     const empN=s.employeurs?.list?.length||0;
     const dot=etape==='metiers'?'#4fe08a':etape==='cognitif'||etape==='competences'||etape==='valeurs'||etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':etape==='invite'?'rgba(255,200,80,.6)':'rgba(255,255,255,.2)';
-    const emailStag=p.email||'';
-    const nomStag=((p.prenom||s.prenom||'')+' '+(p.nom||s.nom||'')).trim();
+    const emailStag=p.email||s._meta?.email||'';
+    const nomStag=((p.prenom||s.prenom||'')+' '+(p.nom||s.nom||'')).trim()||emailStag||'Inconnu';
     return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
       <div style="flex:1;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:s.qimi,riasec:s.riasec,valeurs:s.valeurs,competences:s.competences,cognitif:s.cognitif,metiers:s.metiers,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
         <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3d5af1,#2541c4);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:#fff;flex-shrink:0;">${(p.prenom?.[0]||'?')+(p.nom?.[0]||'')}</div>
