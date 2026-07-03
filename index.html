@@ -1386,6 +1386,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="exportAdminCSV()">📥 Export CSV</button>
+        <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;color:#f5c842;border-color:rgba(245,200,66,.3);" onclick="cleanupOrphans()">🧹 Nettoyer</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="refreshAdminPanel();loadAdminGlobalView()">🔄 Actualiser</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="changeAdminPin()">🔑 Code admin</button>
         <button class="btn btn-p" style="font-size:.8rem;padding:8px 14px;" onclick="exitAdmin()">✕ Quitter</button>
@@ -4214,6 +4215,16 @@ function filterAdminSearch(){
   renderAdminGlobal(filtered);
 }
 
+async function cleanupOrphans(){
+  if(!confirm('Supprimer tous les profils sans email (entrées fantômes) ?'))return;
+  try{
+    const r=await fetch(API_URL,{method:'DELETE',headers:{'X-Admin-Pin':_adminPin}});
+    const d=await r.json();
+    if(d.ok){toast(`🧹 ${d.deleted||0} orphelin(s) supprimé(s)`,'ok');await loadAdminGlobalView(_adminFormateurs);}
+    else toast('Erreur : '+d.error,'err');
+  }catch(e){toast('Erreur réseau','err');}
+}
+
 function exportAdminCSV(){
   if(!_adminAllStagiaires.length){toast('Chargez d\'abord les stagiaires','err');return;}
   const rows=[['Site','Formation','Formateur','Prénom','Nom','Email','Étape','QIMI','RIASEC','Métiers','Employeurs','Dernière activité']];
@@ -4332,7 +4343,7 @@ function renderAdminGlobal(data){
     const p=s.profil||{};const etape=s.etape||'';
     const empN=s.employeurs?.list?.length||0;
     const dot=etape==='metiers'?'#4fe08a':etape==='cognitif'||etape==='competences'||etape==='valeurs'||etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':etape==='invite'?'rgba(255,200,80,.6)':'rgba(255,255,255,.2)';
-    const emailStag=p.email||s._meta?.email||'';
+    const emailStag=p.email||s.email||s._meta?.email||'';
     const nomStag=((p.prenom||s.prenom||'')+' '+(p.nom||s.nom||'')).trim()||emailStag||'Inconnu';
     return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
       <div style="flex:1;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:s.qimi,riasec:s.riasec,valeurs:s.valeurs,competences:s.competences,cognitif:s.cognitif,metiers:s.metiers,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
