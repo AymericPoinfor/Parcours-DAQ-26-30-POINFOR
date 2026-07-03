@@ -1620,6 +1620,17 @@ let rSecIdx=0,rQIdx=0;
 let valeursAns=new Array(40).fill(null),valeursCur=0;
 let skillsAns=new Array(40).fill(null),skillsCur=0;
 let cogAns=new Array(32).fill(null),cogCur=0,cogMemoSeen=new Array(32).fill(false);
+let _cogOptOrder=null;
+function getCogOptOrder(i){
+  if(!_cogOptOrder)_cogOptOrder=[];
+  if(!_cogOptOrder[i]){
+    const n=COGQ[i].opts.length;
+    const arr=Array.from({length:n},(_,k)=>k);
+    for(let j=n-1;j>0;j--){const r=Math.floor(Math.random()*(j+1));[arr[j],arr[r]]=[arr[r],arr[j]];}
+    _cogOptOrder[i]=arr;
+  }
+  return _cogOptOrder[i];
+}
 
 // ══════════════════════════════════════════
 //  UTILITIES
@@ -2075,7 +2086,7 @@ function showSkillsRes(){
 function goCogIntro(){go('scr-cog-instr');setpg(96);setStep('Étape 6 / 8');setTitle('Profil cognitif');}
 
 function startCog(){
-  cogAns=new Array(32).fill(null);cogCur=0;cogMemoSeen=new Array(32).fill(false);
+  cogAns=new Array(32).fill(null);cogCur=0;cogMemoSeen=new Array(32).fill(false);_cogOptOrder=null;
   go('scr-cog-q');renderCQ();
 }
 
@@ -2107,11 +2118,11 @@ function renderCQ(){
   const ans=cogAns[i];
   const row=document.getElementById('cq-opts');
   row.innerHTML='';
-  q.opts.forEach((opt,idx)=>{
+  getCogOptOrder(i).forEach(origIdx=>{
     const b=document.createElement('button');
-    b.className='cog-opt'+(ans===idx?' sel':'');
-    b.textContent=opt;
-    b.onclick=()=>cogSel(idx);
+    b.className='cog-opt'+(ans===origIdx?' sel':'');
+    b.textContent=q.opts[origIdx];
+    b.onclick=()=>cogSel(origIdx);
     row.appendChild(b);
   });
   const done=cogAns.filter(a=>a!==null).length;
