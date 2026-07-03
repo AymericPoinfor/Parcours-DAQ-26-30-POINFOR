@@ -1688,13 +1688,17 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   if(urlFmt) localStorage.setItem('parcours_formateur',urlFmt);
   if(urlPrenom&&urlNom&&urlCode){
     const list=getStagiairesList();
-    if(!list.find(s=>s.code===urlCode)){
-      list.push({prenom:urlPrenom,nom:urlNom,code:urlCode,email:''});
+    let urlFoundEntry=list.find(s=>s.code===urlCode);
+    if(!urlFoundEntry){
+      urlFoundEntry={prenom:urlPrenom,nom:urlNom,code:urlCode,email:''};
+      list.push(urlFoundEntry);
       saveStagiairesList(list);
     }
     sessionStorage.setItem('stagiaire_auth','1');
     sessionStorage.setItem('stagiaire_code',urlCode);
     loadStagiaireData(urlCode);
+    localStorage.setItem('parcours_tests_assigned',JSON.stringify(urlFoundEntry.tests||defaultTests()));
+    localStorage.setItem('parcours_tests_hidden',JSON.stringify(urlFoundEntry.hiddenResults||{}));
     // Garde-fou : ce code contient déjà des données pour un autre profil (ex: test du formateur lui-même)
     const existing=JSON.parse(localStorage.getItem('parcours_profil')||'null');
     if(existing&&existing.prenom&&(normalize(existing.prenom)!==normalize(urlPrenom)||normalize(existing.nom)!==normalize(urlNom))){
