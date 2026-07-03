@@ -1083,6 +1083,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-s fmt-action-btn" style="font-size:.8rem;padding:8px 14px;" onclick="exportAllPDF()">📄 Rapport PDF</button>
         <button class="btn btn-s fmt-action-btn" style="font-size:.8rem;padding:8px 14px;" onclick="setFormateurEmail()">✉️ Mon email</button>
+        <button class="btn btn-s fmt-action-btn" style="font-size:.8rem;padding:8px 14px;" onclick="goFmtSetup()">👤 Mon profil</button>
         <button class="btn btn-s" style="font-size:.8rem;padding:8px 14px;" onclick="renderFormateurDashboard();toast('Données actualisées','ok')">🔄 Actualiser</button>
         <button class="btn btn-p" style="font-size:.8rem;padding:8px 14px;" onclick="exitFormateur()">✕ Quitter</button>
       </div>
@@ -1124,6 +1125,39 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div style="font-size:3rem;margin-bottom:12px;">📋</div>
     <div style="font-size:1rem;font-weight:700;margin-bottom:8px;">Aucun profil enregistré</div>
     <div style="font-size:.85rem;">Les profils apparaîtront ici après que les stagiaires aient validé leur profil.</div>
+  </div>
+</div>
+
+<!-- ══ ÉCRAN SETUP FORMATEUR (premier accès) ══ -->
+<div class="scr flex-scr" id="scr-fmt-setup">
+  <div class="card" style="max-width:560px;width:100%;text-align:left;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-size:2.8rem;margin-bottom:8px;">👨‍🏫</div>
+      <div style="font-size:1.4rem;font-weight:800;margin-bottom:6px;">Bienvenue sur Parcours Pro</div>
+      <div style="font-size:.88rem;color:var(--muted);">Complétez votre profil pour accéder à votre espace formateur.</div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <div class="field" style="flex:1;min-width:140px;">
+        <label>Prénom *</label>
+        <input id="fmts-prenom" class="ef-inp" placeholder="Votre prénom">
+      </div>
+      <div class="field" style="flex:1;min-width:140px;">
+        <label>Nom *</label>
+        <input id="fmts-nom" class="ef-inp" placeholder="Votre nom">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Antenne POINFOR</label>
+      <select id="fmts-antenne" class="ef-inp">
+        <option value="">— Sélectionner votre antenne —</option>
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:24px;">
+      <label style="margin-bottom:10px;display:block;">Dispositifs de formation sur lesquels vous intervenez</label>
+      <div id="fmts-dispositifs" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div id="fmts-err" style="display:none;color:#f77a7a;font-size:.82rem;margin-bottom:12px;text-align:center;"></div>
+    <button class="btn btn-p btn-full" style="font-size:1rem;" onclick="saveFmtProfile()">Enregistrer mon profil →</button>
   </div>
 </div>
 
@@ -1631,6 +1665,9 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   if(p.has('demo')){document.getElementById('dev-bar').style.display='flex';return;}
   // Mode formateur direct
   if(p.has('formateur')){openFormateurLogin();return;}
+  // Lien d'invitation formateur ?fmt_setup=PIN
+  const fmtSetupPin=p.get('fmt_setup');
+  if(fmtSetupPin){history.replaceState(null,'',window.location.pathname);autoFmtSetup(fmtSetupPin);return;}
   // Authentification via lien d'invitation (URL params ?p=Prenom&n=Nom&c=CODE&f=formateurEmail)
   const urlPrenom=p.get('p')||'';
   const urlNom=p.get('n')||'';
@@ -3922,6 +3959,7 @@ async function checkFormateurPin(){
     _fmtFmt=d.formateur;
     _fmtType=d.type||'formateur';
     closeFmtModal();
+    if(!d.formateur.profile_complete&&_fmtType!=='referent'){goFmtSetup();return;}
     renderFormateurDashboard();
     const isRef=_fmtType==='referent';
     go('scr-formateur');
@@ -3943,6 +3981,63 @@ function exitFormateur(){
   clearInterval(_autoRefresh);_autoRefresh=null;
   _fmtPin='';_fmtFmt=null;
   go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');
+}
+
+async function autoFmtSetup(pin){
+  go('scr-welcome');setpg(5);
+  try{
+    const r=await fetch(API_URL+'?action=me',{headers:{'X-Pin':pin}});
+    if(!r.ok){toast('Lien invalide ou expiré','err');go('scr-home');return;}
+    const d=await r.json();
+    if(!d.ok){toast('Erreur de connexion','err');go('scr-home');return;}
+    _fmtPin=pin;_fmtFmt=d.formateur;_fmtType=d.type||'formateur';
+    if(!d.formateur.profile_complete&&_fmtType!=='referent'){goFmtSetup();}
+    else{
+      renderFormateurDashboard();
+      const isRef=_fmtType==='referent';
+      go('scr-formateur');setStep(isRef?'Référent pédagogique':'Mode Formateur');setTitle('Tableau de bord');setpg(0);
+      clearInterval(_autoRefresh);_autoRefresh=setInterval(()=>renderFormateurDashboard(),30000);
+    }
+  }catch(e){toast('Erreur réseau','err');go('scr-home');}
+}
+
+function goFmtSetup(){
+  const sel=document.getElementById('fmts-antenne');
+  sel.innerHTML='<option value="">— Sélectionner votre antenne —</option>'+
+    POINFOR_SITES.map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(_fmtFmt?.prenom)document.getElementById('fmts-prenom').value=_fmtFmt.prenom;
+  if(_fmtFmt?.nom)document.getElementById('fmts-nom').value=_fmtFmt.nom;
+  if(_fmtFmt?.site)sel.value=_fmtFmt.site;
+  const existing=Array.isArray(_fmtFmt?.dispositifs)?_fmtFmt.dispositifs:[];
+  document.getElementById('fmts-dispositifs').innerHTML=FMT_DISPOSITIFS.map(d=>
+    `<label style="display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--card-border);border-radius:8px;padding:8px 13px;cursor:pointer;font-size:.85rem;font-weight:600;">
+      <input type="checkbox" value="${d}"${existing.includes(d)?' checked':''}> ${d}
+    </label>`
+  ).join('');
+  document.getElementById('fmts-err').style.display='none';
+  go('scr-fmt-setup');setStep('Profil formateur');setTitle('Configurer mon espace');setpg(10);
+}
+
+async function saveFmtProfile(){
+  const prenom=document.getElementById('fmts-prenom').value.trim();
+  const nom=document.getElementById('fmts-nom').value.trim();
+  const antenne=document.getElementById('fmts-antenne').value;
+  const dispositifs=[...document.querySelectorAll('#fmts-dispositifs input:checked')].map(i=>i.value);
+  const errEl=document.getElementById('fmts-err');
+  if(!prenom||!nom){errEl.textContent='Prénom et nom sont obligatoires.';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  try{
+    const r=await fetch(API_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Pin':_fmtPin},
+      body:JSON.stringify({action:'complete_formateur_profile',prenom,nom,antenne,dispositifs})});
+    const d=await r.json();
+    if(!d.ok){errEl.textContent=d.error||'Erreur serveur.';errEl.style.display='block';return;}
+    _fmtFmt={..._fmtFmt,prenom,nom,site:antenne,dispositifs,profile_complete:1};
+    toast('Profil enregistré !','ok');
+    renderFormateurDashboard();
+    go('scr-formateur');setStep('Mode Formateur');setTitle('Tableau de bord');setpg(0);
+    clearInterval(_autoRefresh);_autoRefresh=setInterval(()=>renderFormateurDashboard(),30000);
+  }catch(e){errEl.textContent='Erreur réseau. Réessayez.';errEl.style.display='block';}
 }
 
 // ══════════════════════════════════════════
@@ -4142,6 +4237,7 @@ function exportAdminCSV(){
 }
 
 const POINFOR_SITES=['Langres','Chaumont','Saint-Dizier','Vitry-le-François','Troyes','Bar-sur-Aube','Migennes','Sens','Auxerre','Gray','Vesoul'];
+const FMT_DISPOSITIFS=['DAQ','PMSMP','Bilan de compétences','Formation courte','Accompagnement RSA','Remobilisation','Orientation professionnelle','VAE'];
 let _adminAllStagiaires=[];
 let _adminFormateurs=[];
 let _adminFmtFilter='all';
@@ -4530,8 +4626,9 @@ async function renderFormateurDashboard(){
   if(!isRef){renderCodesList();renderTestCheckboxes();}
   const idEl=document.getElementById('fmt-identity');
   if(idEl&&_fmtFmt){
-    const formation=_fmtFmt.formation?` · ${_fmtFmt.formation}`:'';
-    idEl.textContent=_fmtFmt.prenom+' '+_fmtFmt.nom+formation+(isRef?' (lecture seule)':'');
+    const antenne=_fmtFmt.site?` · 📍 ${_fmtFmt.site}`:'';
+    const disp=Array.isArray(_fmtFmt.dispositifs)&&_fmtFmt.dispositifs.length?` · ${_fmtFmt.dispositifs.join(', ')}`:'';
+    idEl.textContent=_fmtFmt.prenom+' '+_fmtFmt.nom+antenne+disp+(isRef?' (lecture seule)':'');
   }
   const listEl=document.getElementById('fmt-list');
   const emptyEl=document.getElementById('fmt-empty');
@@ -4551,7 +4648,7 @@ async function renderFormateurDashboard(){
           prenom:d.prenom||d.profil?.prenom,
           nom:d.nom||d.profil?.nom,
           savedAt:d._meta?.updated_at||new Date().toISOString(),
-          snap:{profil:d.profil,qimi:d.qimi,riasec:d.riasec,metiers:d.metiers,employeurs:d.employeurs}
+          snap:{profil:d.profil,qimi:d.qimi,riasec:d.riasec,valeurs:d.valeurs,competences:d.competences,cognitif:d.cognitif,metiers:d.metiers,employeurs:d.employeurs}
         }));
         source='server';
         localStorage.setItem('profils_liste',JSON.stringify(liste));
@@ -4591,9 +4688,10 @@ async function renderFormateurDashboard(){
           ${chip(hasQ,'QIMI')}${chip(hasR,'RIASEC')}${chip(hasM,'Métiers')}
           <span class="fmt-chip" style="background:${empN>0?'rgba(79,142,247,.15)':'rgba(255,255,255,.06)'};color:${empN>0?'var(--accent)':'var(--muted)'}">Emp: ${empN}</span>
         </div>
-        <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" onclick="event.stopPropagation()">
           <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="showStagiaireDetail(${idx})">👁 Détail</button>
-          ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">💾 PDF</button>`:''}
+          ${(hasQ||hasR)?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genBilanPDFFromSnap(${idx})">📄 Bilan</button>`:''}
+          ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">📋 Plan</button>`:''}
           <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="confirmDeleteStagiaire('${p.prenom} ${p.nom}','${p.email}')">🗑 Supprimer</button>
         </div>
       </div>`+
@@ -4904,6 +5002,23 @@ async function genPlanPDFFromSnap(idx){
   const fn='PlanAction_'+(p.prenom||'Stagiaire')+'_'+(p.nom||'')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
   try{await captureAndSave(document.getElementById('print-action'),fn);toast('PDF enregistré !','ok');}
   catch(e){toast('Erreur PDF','err');}
+}
+
+function genBilanPDFFromSnap(idx){
+  const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
+  const entry=liste[idx];if(!entry)return;
+  const snap=entry.snap;
+  const p=snap?.profil||{};
+  const qd=snap?.qimi||null;
+  const rd=snap?.riasec||null;
+  const vd=snap?.valeurs||null;
+  const cd=snap?.competences||null;
+  const gd=snap?.cognitif||null;
+  const md=snap?.metiers||null;
+  const empList=snap?.employeurs?.list||[];
+  if(!qd&&!rd&&!vd&&!cd&&!gd){toast('Aucun résultat de test disponible','err');return;}
+  fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList);
+  toast('Bilan PDF généré !','ok');
 }
 
 function openPlanWindowFromSnap(idx){
