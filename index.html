@@ -4397,13 +4397,32 @@ async function createFormateur(){
       body:JSON.stringify({action:'create_formateur',prenom,nom,email,site,formation,url})});
     const d=await r.json();
     if(d.ok){
-      toast(`✅ Formateur créé — code : ${d.pin}`,'ok');
       document.getElementById('adm-prenom').value='';
       document.getElementById('adm-nom').value='';
       document.getElementById('adm-email').value='';
       document.getElementById('adm-site').value='';
       document.getElementById('adm-formation').value='';
       await refreshAdminPanel();
+      // Modal avec le lien de setup (au cas où l'email n'arrive pas)
+      const box=_adminModal('fmt-created-modal');
+      const emailOk=d.email_sent!==false;
+      box.innerHTML=`
+        <div style="font-size:2rem;margin-bottom:12px;">✅</div>
+        <div style="font-weight:800;font-size:1.1rem;margin-bottom:6px;">Formateur créé</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px;">
+          ${emailOk?'📧 Email d\'invitation envoyé à <strong>'+email+'</strong>':'⚠️ L\'email n\'a pas pu être envoyé — partagez le lien manuellement.'}
+        </div>
+        <div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">🔑 Code formateur</div>
+          <div style="font-family:monospace;font-size:1.4rem;font-weight:800;color:var(--gold);letter-spacing:3px;">${d.pin}</div>
+        </div>
+        <div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:18px;">
+          <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;">🔗 Lien de configuration</div>
+          <div style="font-size:.76rem;word-break:break-all;color:var(--accent);margin-bottom:8px;">${d.setup_url||''}</div>
+          <button class="btn btn-s" style="font-size:.76rem;padding:6px 14px;" onclick="navigator.clipboard.writeText('${(d.setup_url||'').replace(/'/g,"\\''")}');toast('Lien copié !','ok')">📋 Copier le lien</button>
+        </div>
+        <button class="btn btn-p btn-full" onclick="document.getElementById('fmt-created-modal').style.display='none'">Fermer</button>`;
+      document.getElementById('fmt-created-modal').style.display='flex';
     }else{toast('Erreur : '+(d.error||'inconnue'),'err');}
   }catch(e){toast('Erreur réseau','err');}
 }
