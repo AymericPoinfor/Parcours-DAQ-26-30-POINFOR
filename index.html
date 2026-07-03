@@ -4734,21 +4734,24 @@ async function executeDeleteStagiaire(){
   const{nom,email}=_deletePending;
   _deletePending=null;
   document.getElementById('delete-confirm-modal').style.display='none';
-  // Suppression serveur (essai avec pin admin puis formateur)
-  const pin=typeof _adminPin!=='undefined'&&_adminPin?_adminPin:_fmtPin;
-  try{await fetch(API_URL+'?email='+encodeURIComponent(email),{method:'DELETE',headers:{'X-Pin':pin}});}catch(e){}
-  // Suppression profils_liste (dashboard)
+  // Suppression serveur — header correct selon contexte (admin ou formateur)
+  const isAdmin=typeof _adminPin!=='undefined'&&_adminPin;
+  const headers=isAdmin?{'X-Admin-Pin':_adminPin}:{'X-Pin':_fmtPin};
+  try{
+    const r=await fetch(API_URL+'?email='+encodeURIComponent(email),{method:'DELETE',headers});
+    if(!r.ok){const d=await r.json().catch(()=>({}));toast('Erreur serveur : '+(d.error||r.status),'err');return;}
+  }catch(e){toast('Erreur réseau','err');return;}
+  // Suppression locale
   const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]').filter(e=>e.email!==email);
   localStorage.setItem('profils_liste',JSON.stringify(liste));
-  // Suppression codes stagiaires si le code lui correspond
   const newCodes=getStagiairesList().filter(s=>normalize(s.email||'')!==normalize(email));
   saveStagiairesList(newCodes);
-  // Actualiser les deux vues
-  if(typeof _adminAllStagiaires!=='undefined'){
-    _adminAllStagiaires=_adminAllStagiaires.filter(s=>(s.profil?.email||s.email||'')!==email);
+  // Actualiser les vues
+  if(isAdmin&&typeof _adminAllStagiaires!=='undefined'){
+    _adminAllStagiaires=_adminAllStagiaires.filter(s=>(s.profil?.email||s._meta?.email||s.email||'')!==email);
     renderAdminGlobal();
   }
-  renderFormateurDashboard();
+  if(_fmtPin)renderFormateurDashboard();
   toast(nom+' — profil supprimé','ok');
 }
 function exportProfilJSON(idx){
