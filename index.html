@@ -3217,6 +3217,7 @@ async function syncToServer(snap){
         nom:snap.profil.nom,
         etape,
         formateur_email:formateurEmail,
+        code:sessionStorage.getItem('stagiaire_code')||'',
         ...snap
       })
     });
