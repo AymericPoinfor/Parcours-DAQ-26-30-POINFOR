@@ -1368,6 +1368,17 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Profil d'apprentissage et de fonctionnement cognitif</div>
     <div id="pbc-cognitif"></div>
   </div>
+  <!-- Diagnostics Mobilité + Freins côte à côte -->
+  <div style="display:flex;gap:10px;margin-bottom:12px;">
+    <div style="flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;">
+      <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Diagnostic Mobilité</div>
+      <div id="pbc-mobilite"></div>
+    </div>
+    <div style="flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;">
+      <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Diagnostic des freins à l'emploi</div>
+      <div id="pbc-freins"></div>
+    </div>
+  </div>
   <!-- Métiers -->
   <div style="border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;margin-bottom:12px;">
     <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Métiers choisis</div>
@@ -3350,7 +3361,7 @@ function exportJSON(){
   a.click();URL.revokeObjectURL(url);
   toast('JSON exporté !','ok');
 }
-function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList){
+function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid){
   const name=(p.prenom||'Stagiaire')+' '+(p.nom||'');
   document.getElementById('pbc-name').textContent=name.trim();
   document.getElementById('pbc-date').textContent='Bilan du '+new Date().toLocaleDateString('fr-FR');
@@ -3464,6 +3475,23 @@ function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList){
           `<td style="padding:5px 7px;font-weight:700;">${rep}</td></tr>`;
       }).join('')+`</table>`;
   }else{eEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Aucun employeur ajouté</div>';}
+  // Diagnostics Mobilité / Freins (version print, couleurs claires)
+  const diagPrint=(dd)=>{
+    if(!dd||dd.pct==null)return'<div style="font-size:8pt;color:#aaa;">Non complété</div>';
+    const col=dd.pct>=60?'#2e7d32':dd.pct>=40?'#e65100':'#c62828';
+    const det=dd.detail||{};
+    const rows=Object.keys(det).map(k=>{
+      const c=det[k]||{},pp=c.pct!=null?c.pct:Math.round(((c.score||0)/(c.max||1))*100),nom=c.nom||k;
+      const cc=pp>=60?'#2e7d32':pp>=40?'#e65100':'#c62828';
+      return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">`+
+        `<span style="font-size:8pt;font-weight:700;flex:1;">${nom}</span>`+
+        `<span style="width:70px;height:7px;background:#eee;border-radius:4px;overflow:hidden;display:inline-block;"><span style="display:block;height:100%;width:${pp}%;background:${cc};border-radius:4px;"></span></span>`+
+        `<span style="font-size:8pt;font-weight:700;color:${cc};width:26px;text-align:right;">${pp}%</span></div>`;
+    }).join('');
+    return`<div style="font-size:12pt;font-weight:900;color:${col};margin-bottom:6px;">${dd.pct}%<span style="font-size:7pt;color:#888;font-weight:600;"> global</span></div>${rows}`;
+  };
+  const mobEl=document.getElementById('pbc-mobilite');if(mobEl)mobEl.innerHTML=diagPrint(mobd);
+  const freEl=document.getElementById('pbc-freins');if(freEl)freEl.innerHTML=diagPrint(freid);
 }
 
 function genBilanPDF(){
@@ -3474,8 +3502,10 @@ function genBilanPDF(){
   const cd=JSON.parse(localStorage.getItem('parcours_competences')||'null');
   const gd=getHiddenTests().cognitif?null:JSON.parse(localStorage.getItem('parcours_cognitif')||'null');
   const md=JSON.parse(localStorage.getItem('parcours_metiers')||'null');
+  const mobd=getHiddenTests().mobilite?null:JSON.parse(localStorage.getItem('parcours_mobilite')||'null');
+  const freid=getHiddenTests().freins?null:JSON.parse(localStorage.getItem('parcours_freins')||'null');
   if(!p){toast('Profil manquant','err');return;}
-  fillBilanPDF(p,qd,rd,vd,cd,gd,md,employers);
+  fillBilanPDF(p,qd,rd,vd,cd,gd,md,employers,mobd,freid);
   toast('Génération du bilan…');
   const fn='BilanComplet_'+(p.prenom||'Stagiaire')+'_'+(p.nom||'')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
   captureAndSave(document.getElementById('print-bilan-complet'),fn)
@@ -3494,8 +3524,9 @@ async function genBilanPDFFromModal(){
   const gd=snap?.cognitif;
   const md=snap?.metiers;
   const empList=snap?.employeurs?.list||[];
-  if(!qd&&!rd&&!vd&&!cd&&!gd&&!md){toast('Aucun résultat disponible pour ce stagiaire','err');return;}
-  fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList);
+  const mobd=snap?.mobilite,freid=snap?.freins;
+  if(!qd&&!rd&&!vd&&!cd&&!gd&&!md&&!mobd&&!freid){toast('Aucun résultat disponible pour ce stagiaire','err');return;}
+  fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid);
   toast('Génération du bilan…');
   const fn='BilanComplet_'+(p.prenom||'Stagiaire')+'_'+(p.nom||'')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
   try{await captureAndSave(document.getElementById('print-bilan-complet'),fn);toast('Bilan PDF enregistré !','ok');}
@@ -5151,8 +5182,9 @@ function genBilanPDFFromSnap(idx){
   const gd=snap?.cognitif||null;
   const md=snap?.metiers||null;
   const empList=snap?.employeurs?.list||[];
-  if(!qd&&!rd&&!vd&&!cd&&!gd){toast('Aucun résultat de test disponible','err');return;}
-  fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList);
+  const mobd=snap?.mobilite,freid=snap?.freins;
+  if(!qd&&!rd&&!vd&&!cd&&!gd&&!mobd&&!freid){toast('Aucun résultat de test disponible','err');return;}
+  fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid);
   toast('Bilan PDF généré !','ok');
 }
 
