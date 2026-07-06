@@ -648,6 +648,15 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   <button class="btn btn-p btn-lg" id="po-next-btn" onclick="goAfterProfil()">Démarrer le test QIMI →</button>
 </div>
 
+<!-- ══ DIAGNOSTIC EMBARQUÉ (Mobilité / Freins) ══ -->
+<div class="scr" id="scr-diag" style="padding:0;max-width:none;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:var(--card,#0a0e27);border-bottom:1px solid rgba(255,255,255,.12);position:sticky;top:0;z-index:5;">
+    <div id="diag-title" style="font-weight:800;font-size:1rem;">Diagnostic</div>
+    <button class="btn btn-p" id="diag-continue-btn" disabled onclick="diagContinue()" style="white-space:nowrap;">Terminez le diagnostic…</button>
+  </div>
+  <iframe id="diag-frame" title="Diagnostic" style="display:block;width:100%;height:calc(100vh - 58px);border:0;background:#fff;"></iframe>
+</div>
+
 <!-- ══ QIMI INSTRUCTIONS ══ -->
 <div class="scr" id="scr-qimi-instr">
   <div class="card" style="text-align:center;margin-bottom:14px;">
@@ -1809,7 +1818,9 @@ const TESTS_ORDER=[
   {key:'riasec',name:'RIASEC',emoji:'🔬',label:'Démarrer le test RIASEC →',start:()=>goRiasecIntro()},
   {key:'valeurs',name:'Valeurs',emoji:'⚖️',label:'Test Valeurs professionnelles →',start:()=>goValeursIntro()},
   {key:'competences',name:'Compétences',emoji:'🧩',label:'Test Compétences transversales →',start:()=>goSkillsIntro()},
-  {key:'cognitif',name:'Profil cognitif',emoji:'🧭',label:"Profil d'apprentissage et de fonctionnement cognitif →",start:()=>goCogIntro(),hideable:true}
+  {key:'cognitif',name:'Profil cognitif',emoji:'🧭',label:"Profil d'apprentissage et de fonctionnement cognitif →",start:()=>goCogIntro(),hideable:true},
+  {key:'mobilite',name:'Diagnostic Mobilité',emoji:'🚗',label:'Diagnostic Mobilité →',start:()=>openDiag('mobilite'),hideable:true},
+  {key:'freins',name:'Diagnostic Freins',emoji:'🚧',label:"Diagnostic des freins à l'emploi →",start:()=>openDiag('freins'),hideable:true}
 ];
 function getAssignedTests(){
   try{return JSON.parse(localStorage.getItem('parcours_tests_assigned')||'null')||defaultTests();}
@@ -1837,6 +1848,30 @@ function goAfter(stageKey){
 function goAfterProfil(){goAfter(null);}
 function goAfterQimi(){goAfter('qimi');}
 function goAfterRiasec(){goAfter('riasec');}
+
+// ── Diagnostics embarqués (Mobilité / Freins) : ouverts en iframe, résultats captés par postMessage ──
+let _currentDiag=null;
+function openDiag(key){
+  _currentDiag=key;
+  const meta=TESTS_ORDER.find(t=>t.key===key)||{name:'Diagnostic',emoji:'🧭'};
+  document.getElementById('diag-title').textContent=meta.emoji+' '+meta.name;
+  const btn=document.getElementById('diag-continue-btn');
+  btn.disabled=true; btn.textContent='Terminez le diagnostic…';
+  document.getElementById('diag-frame').src='diagnostics/'+key+'/index.html';
+  go('scr-diag');setpg(50);setStep('Diagnostic');setTitle(meta.name);setCounter('');
+}
+function diagContinue(){ const k=_currentDiag; _currentDiag=null; document.getElementById('diag-frame').src='about:blank'; goAfter(k); }
+window.addEventListener('message',function(ev){
+  const d=ev&&ev.data;
+  if(!d||typeof d!=='object'||!d.diagResult)return;
+  const r=d.diagResult;
+  if(!r.key)return;
+  try{ localStorage.setItem('parcours_'+r.key,JSON.stringify({pct:r.pct,detail:r.detail,name:r.name,date:r.date||new Date().toISOString()})); }catch(e){}
+  try{ saveToProfilsList(); }catch(e){}
+  const btn=document.getElementById('diag-continue-btn');
+  if(btn){ btn.disabled=false; btn.textContent='Continuer le parcours →'; }
+  try{ toast('Diagnostic terminé ✓ — vous pouvez continuer','ok'); }catch(e){}
+});
 
 function goQimiIntro(){go('scr-qimi-instr');setpg(28);setStep('Étape 2 / 8');setTitle('Test QIMI');}
 
@@ -3197,6 +3232,8 @@ function saveToProfilsList(){
     valeurs:JSON.parse(localStorage.getItem('parcours_valeurs')||'null'),
     competences:JSON.parse(localStorage.getItem('parcours_competences')||'null'),
     cognitif:JSON.parse(localStorage.getItem('parcours_cognitif')||'null'),
+    mobilite:JSON.parse(localStorage.getItem('parcours_mobilite')||'null'),
+    freins:JSON.parse(localStorage.getItem('parcours_freins')||'null'),
     metiers:JSON.parse(localStorage.getItem('parcours_metiers')||'null'),
     employeurs:JSON.parse(localStorage.getItem('parcours_employeurs')||'null'),
   };
@@ -3300,6 +3337,8 @@ function exportJSON(){
     valeurs:JSON.parse(localStorage.getItem('parcours_valeurs')||'null'),
     competences:JSON.parse(localStorage.getItem('parcours_competences')||'null'),
     cognitif:JSON.parse(localStorage.getItem('parcours_cognitif')||'null'),
+    mobilite:JSON.parse(localStorage.getItem('parcours_mobilite')||'null'),
+    freins:JSON.parse(localStorage.getItem('parcours_freins')||'null'),
     metiers:JSON.parse(localStorage.getItem('parcours_metiers')||'null'),
     employeurs:JSON.parse(localStorage.getItem('parcours_employeurs')||'null'),
   };
@@ -3603,7 +3642,7 @@ function proceedAfterAuth(){
 function genCode(){return Math.random().toString(36).substr(2,6).toUpperCase();}
 
 const ALL_TESTS=TESTS_ORDER.map(x=>x.key);
-function defaultTests(){const o={};ALL_TESTS.forEach(k=>o[k]=true);o.cognitif=false;return o;}
+function defaultTests(){const o={};ALL_TESTS.forEach(k=>o[k]=true);o.cognitif=false;o.mobilite=false;o.freins=false;return o;}
 
 function renderTestCheckboxes(){
   const el=document.getElementById('fmt-st-tests-checks');
@@ -4836,6 +4875,21 @@ function exportProfilJSON(idx){
   toast('JSON exporté !','ok');
 }
 let _modalEntry=null;
+// Rendu générique d'un résultat de diagnostic embarqué (Mobilité / Freins) : {pct, detail:{cat:{score,max,pct,nom?}}}
+function diagResultHtml(dd){
+  if(!dd||dd.pct==null)return'<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
+  const pct=dd.pct, col=pct>=60?'#4fe08a':pct>=40?'#f5c842':'#f77a7a';
+  const det=dd.detail||{};
+  const rows=Object.keys(det).map(k=>{
+    const c=det[k]||{}, p=c.pct!=null?c.pct:Math.round(((c.score||0)/(c.max||1))*100), nom=c.nom||k;
+    const cc=p>=60?'#4fe08a':p>=40?'#f5c842':'#f77a7a';
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:.8rem;font-weight:700;flex:1;">${nom}</span>
+      <div style="width:90px;height:7px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${p}%;background:${cc};"></div></div>
+      <span style="font-size:.76rem;font-weight:800;color:${cc};width:34px;text-align:right;">${p}%</span></div>`;
+  }).join('');
+  return`<div style="font-size:1.4rem;font-weight:900;color:${col};margin-bottom:8px;">${pct}%<span style="font-size:.7rem;color:var(--muted);font-weight:600;"> global</span></div>${rows}`;
+}
 function showStagiaireDetail(idx){
   const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
   const entry=liste[idx];if(!entry)return;
@@ -4915,6 +4969,11 @@ function showStagiaireDetail(idx){
   if(gd?.scores){
     cognitifHtml=cogLevelsHtml(gd.scores);
   }
+
+  // ── Diagnostics embarqués (Mobilité / Freins) ──
+  const mobd=snap?.mobilite, freid=snap?.freins;
+  const mobiliteHtml=diagResultHtml(mobd);
+  const freinsHtml=diagResultHtml(freid);
 
   // ── Métiers ──
   let metiersHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
@@ -5027,6 +5086,8 @@ function showStagiaireDetail(idx){
           <div>${sec('Compétences transversales','🧩',competencesHtml)}</div>
         </div>
         ${sec('Profil d\'apprentissage et de fonctionnement cognitif','🧮',cognitifHtml)}
+        ${mobd?sec('Diagnostic Mobilité','🚗',mobiliteHtml):''}
+        ${freid?sec('Diagnostic des freins à l\'emploi','🚧',freinsHtml):''}
         ${sec('Métiers cibles','💼',metiersHtml)}
         ${hasPlans?sec('Plans A / B / C','🗺️',plansHtml):''}
         ${sec('Plan d\'action — Employeurs','📋',planHtml)}
