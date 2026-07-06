@@ -1697,7 +1697,12 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
     sessionStorage.setItem('stagiaire_auth','1');
     sessionStorage.setItem('stagiaire_code',urlCode);
     loadStagiaireData(urlCode);
-    localStorage.setItem('parcours_tests_assigned',JSON.stringify(urlFoundEntry.tests||defaultTests()));
+    // Ne PAS appeler defaultTests() ici : ce code s'exécute au chargement, avant l'initialisation
+    // de la constante ALL_TESTS (définie plus bas) → ReferenceError (temporal dead zone) qui plantait
+    // toute l'initialisation du script pour un stagiaire arrivant par lien d'invitation.
+    // On stocke les tests seulement s'ils sont fournis ; sinon getAssignedTests() calculera le défaut plus tard.
+    if(urlFoundEntry.tests) localStorage.setItem('parcours_tests_assigned',JSON.stringify(urlFoundEntry.tests));
+    else localStorage.removeItem('parcours_tests_assigned');
     localStorage.setItem('parcours_tests_hidden',JSON.stringify(urlFoundEntry.hiddenResults||{}));
     // Garde-fou : ce code contient déjà des données pour un autre profil (ex: test du formateur lui-même)
     const existing=JSON.parse(localStorage.getItem('parcours_profil')||'null');
