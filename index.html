@@ -1356,16 +1356,15 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       <div id="pbc-riasec"></div>
     </div>
   </div>
-  <!-- Valeurs professionnelles + Compétences côte à côte -->
-  <div style="display:flex;gap:10px;margin-bottom:12px;">
-    <div style="flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;">
-      <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Valeurs professionnelles — Top 3</div>
-      <div id="pbc-valeurs"></div>
-    </div>
-    <div style="flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;">
-      <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Compétences transversales — Top 3</div>
-      <div id="pbc-competences"></div>
-    </div>
+  <!-- Valeurs professionnelles (résultats détaillés) -->
+  <div style="border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;margin-bottom:12px;">
+    <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Valeurs professionnelles — Résultats détaillés</div>
+    <div id="pbc-valeurs"></div>
+  </div>
+  <!-- Compétences transversales (résultats détaillés) -->
+  <div style="border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;margin-bottom:12px;">
+    <div style="font-size:7pt;font-weight:700;color:#1e4dd8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Compétences transversales — Résultats détaillés</div>
+    <div id="pbc-competences"></div>
   </div>
   <!-- Évaluation cognitive -->
   <div style="border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;margin-bottom:12px;">
@@ -3369,6 +3368,25 @@ function exportJSON(){
   a.click();URL.revokeObjectURL(url);
   toast('JSON exporté !','ok');
 }
+// Rendu détaillé pour le bilan : les 8 items classés par score, avec barre (%) et description.
+function bilanRankedHtml(data,CAT,KEYS,intro){
+  const sorted=KEYS.slice().sort((a,b)=>(data.scores[b]||0)-(data.scores[a]||0));
+  const rows=sorted.map((k,i)=>{
+    const c=CAT[k],pct=Math.round(((data.scores[k]||0)/25)*100);
+    const col=pct>=66?'#2e7d32':pct>=40?'#e65100':'#999';
+    const rank=i<3?['①','②','③'][i]+' ':'';
+    return`<div style="margin-bottom:7px;">`+
+      `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">`+
+        `<span style="font-size:9.5pt;">${c.emoji}</span>`+
+        `<span style="font-size:8.5pt;font-weight:700;flex:1;color:#222;">${rank}${c.name}</span>`+
+        `<span style="width:100px;height:7px;background:#eee;border-radius:4px;overflow:hidden;display:inline-block;"><span style="display:block;height:100%;width:${pct}%;background:${col};border-radius:4px;"></span></span>`+
+        `<span style="font-size:8pt;font-weight:800;color:${col};width:30px;text-align:right;">${pct}%</span>`+
+      `</div>`+
+      `<div style="font-size:7.5pt;color:#666;line-height:1.35;padding-left:19px;">${c.desc}</div>`+
+    `</div>`;
+  }).join('');
+  return(intro?`<div style="font-size:7.5pt;color:#888;font-style:italic;margin-bottom:8px;">${intro}</div>`:'')+rows;
+}
 function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid){
   const name=(p.prenom||'Stagiaire')+' '+(p.nom||'');
   document.getElementById('pbc-name').textContent=name.trim();
@@ -3416,26 +3434,10 @@ function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid){
   }else{rEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Non complété</div>';}
   // Valeurs
   const vEl=document.getElementById('pbc-valeurs');
-  if(vd&&vd.top3){
-    vEl.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px;">`+
-      vd.top3.map(k=>{
-        const c=VCAT[k];const pct=Math.round((vd.scores[k]/25)*100);
-        return`<div style="border:1px solid #dde5ff;border-radius:5px;padding:5px 9px;font-size:8pt;">`+
-          `<span style="font-size:10pt;">${c.emoji}</span> <b>${c.name}</b>`+
-          `<span style="margin-left:6px;font-weight:800;color:#1e4dd8;">${pct}%</span></div>`;
-      }).join('')+`</div>`;
-  }else{vEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Non complété</div>';}
+  vEl.innerHTML=(vd&&vd.scores)?bilanRankedHtml(vd,VCAT,VKEYS,'Vos valeurs prioritaires, du plus au moins important :'):'<div style="font-size:8pt;color:#aaa;">Non complété</div>';
   // Compétences
   const cEl=document.getElementById('pbc-competences');
-  if(cd&&cd.top3){
-    cEl.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px;">`+
-      cd.top3.map(k=>{
-        const c=SCAT[k];const pct=Math.round((cd.scores[k]/25)*100);
-        return`<div style="border:1px solid #dde5ff;border-radius:5px;padding:5px 9px;font-size:8pt;">`+
-          `<span style="font-size:10pt;">${c.emoji}</span> <b>${c.name}</b>`+
-          `<span style="margin-left:6px;font-weight:800;color:#1e4dd8;">${pct}%</span></div>`;
-      }).join('')+`</div>`;
-  }else{cEl.innerHTML='<div style="font-size:8pt;color:#aaa;">Non complété</div>';}
+  cEl.innerHTML=(cd&&cd.scores)?bilanRankedHtml(cd,SCAT,SKEYS,'Vos compétences transversales, de la plus à la moins affirmée :'):'<div style="font-size:8pt;color:#aaa;">Non complété</div>';
   // Profil cognitif (niveaux qualitatifs, pas de note globale)
   const gEl=document.getElementById('pbc-cognitif');
   if(gd&&gd.scores){
