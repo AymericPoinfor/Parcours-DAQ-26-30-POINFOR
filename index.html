@@ -1724,6 +1724,7 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
     }
     sessionStorage.setItem('stagiaire_auth','1');
     sessionStorage.setItem('stagiaire_code',urlCode);
+    localStorage.setItem('parcours_active_code',urlCode);
     loadStagiaireData(urlCode);
     // Ne PAS appeler defaultTests() ici : ce code s'exécute au chargement, avant l'initialisation
     // de la constante ALL_TESTS (définie plus bas) → ReferenceError (temporal dead zone) qui plantait
@@ -1748,6 +1749,18 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   // Vérification code d'accès — obligatoire à chaque nouvelle session navigateur
   const authenticated=sessionStorage.getItem('stagiaire_auth')==='1';
   if(!authenticated){
+    // Reprise automatique : ce navigateur contient déjà un parcours en cours (même appareil),
+    // même sans les paramètres du lien et après fermeture du navigateur → on reprend sans re-saisir le code.
+    const activeCode=localStorage.getItem('parcours_active_code');
+    if(activeCode && saved){
+      sessionStorage.setItem('stagiaire_auth','1');
+      sessionStorage.setItem('stagiaire_code',activeCode);
+      // Restaurer depuis l'espace du stagiaire seulement s'il existe (sinon garder les données actives)
+      if(localStorage.getItem('s_'+activeCode+'_parcours_profil')) loadStagiaireData(activeCode);
+      const sp=localStorage.getItem('parcours_profil');
+      if(sp){try{showResumeModal(JSON.parse(sp));}catch(e){}}
+      return;
+    }
     go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');
     return;
   }
@@ -3673,6 +3686,7 @@ function checkAccessCode(){
     if(found){
       sessionStorage.setItem('stagiaire_code',found.code);
       sessionStorage.setItem('stagiaire_nom',found.prenom+' '+found.nom);
+      localStorage.setItem('parcours_active_code',found.code);
       loadStagiaireData(found.code);
       localStorage.setItem('parcours_tests_assigned',JSON.stringify(found.tests||defaultTests()));
       localStorage.setItem('parcours_tests_hidden',JSON.stringify(found.hiddenResults||{}));
