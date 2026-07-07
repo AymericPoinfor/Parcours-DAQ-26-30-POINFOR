@@ -531,24 +531,18 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 <div class="scr flex-scr" id="scr-access">
   <div class="card" style="max-width:460px;width:100%;text-align:center;">
     <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
-    <div style="font-size:1.5rem;font-weight:800;margin-bottom:6px;">Accès sécurisé</div>
-    <div style="font-size:.88rem;color:var(--muted);margin-bottom:22px;line-height:1.6;">Entrez vos informations pour accéder à votre parcours personnel.</div>
-    <div class="grid2" style="margin-bottom:12px;">
-      <div class="field" style="text-align:left;">
-        <label>Prénom <span class="req">*</span></label>
-        <input type="text" id="access-prenom" class="ef-inp" placeholder="Votre prénom" autocomplete="given-name">
-      </div>
-      <div class="field" style="text-align:left;">
-        <label>Nom <span class="req">*</span></label>
-        <input type="text" id="access-nom" class="ef-inp" placeholder="Votre nom" autocomplete="family-name">
-      </div>
+    <div style="font-size:1.5rem;font-weight:800;margin-bottom:6px;">Connexion</div>
+    <div style="font-size:.88rem;color:var(--muted);margin-bottom:22px;line-height:1.6;">Connectez-vous pour accéder à votre parcours et le reprendre où vous en étiez.</div>
+    <div class="field" style="margin-bottom:12px;text-align:left;">
+      <label>Adresse email <span class="req">*</span></label>
+      <input type="email" id="access-email" class="ef-inp" placeholder="votre@email.fr" autocomplete="email" onkeydown="if(event.key==='Enter')stagiaireLogin()">
     </div>
     <div class="field" style="margin-bottom:16px;text-align:left;">
-      <label>Code d'accès personnel <span class="req">*</span></label>
-      <input type="password" id="access-inp" class="ef-inp" placeholder="Code fourni par votre formateur" onkeydown="if(event.key==='Enter')checkAccessCode()">
+      <label>Mot de passe <span class="req">*</span></label>
+      <input type="password" id="access-inp" class="ef-inp" placeholder="Code fourni par votre formateur" autocomplete="current-password" onkeydown="if(event.key==='Enter')stagiaireLogin()">
     </div>
-    <div id="access-err" style="display:none;color:#f77a7a;font-size:.82rem;margin-bottom:12px;line-height:1.5;">Identifiants incorrects.<br>Vérifiez votre prénom, nom et code.</div>
-    <button class="btn btn-p btn-full" onclick="checkAccessCode()">Accéder à mon parcours →</button>
+    <div id="access-err" style="display:none;color:#f77a7a;font-size:.82rem;margin-bottom:12px;line-height:1.5;">Email ou mot de passe incorrect.</div>
+    <button class="btn btn-p btn-full" onclick="stagiaireLogin()">Se connecter →</button>
     <div style="margin-top:20px;display:flex;justify-content:center;gap:20px;">
       <button onclick="openFormateurLogin()" style="background:none;border:none;color:rgba(232,234,246,0.25);font-size:.68rem;cursor:pointer;letter-spacing:.04em;padding:4px 8px;">Mode Formateur</button>
       <button onclick="openAdminLogin()" style="background:none;border:none;color:rgba(232,234,246,0.15);font-size:.68rem;cursor:pointer;letter-spacing:.04em;padding:4px 8px;">Administration</button>
@@ -1715,35 +1709,16 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   if(urlFmt) localStorage.setItem('parcours_formateur',urlFmt);
   if(urlSite) localStorage.setItem('parcours_site',urlSite);
   if(urlPrenom&&urlNom&&urlCode){
-    const list=getStagiairesList();
-    let urlFoundEntry=list.find(s=>s.code===urlCode);
-    if(!urlFoundEntry){
-      urlFoundEntry={prenom:urlPrenom,nom:urlNom,code:urlCode,email:''};
-      list.push(urlFoundEntry);
-      saveStagiairesList(list);
-    }
-    sessionStorage.setItem('stagiaire_auth','1');
-    sessionStorage.setItem('stagiaire_code',urlCode);
-    localStorage.setItem('parcours_active_code',urlCode);
-    loadStagiaireData(urlCode);
-    // Ne PAS appeler defaultTests() ici : ce code s'exécute au chargement, avant l'initialisation
-    // de la constante ALL_TESTS (définie plus bas) → ReferenceError (temporal dead zone) qui plantait
-    // toute l'initialisation du script pour un stagiaire arrivant par lien d'invitation.
-    // On stocke les tests seulement s'ils sont fournis ; sinon getAssignedTests() calculera le défaut plus tard.
-    if(urlFoundEntry.tests) localStorage.setItem('parcours_tests_assigned',JSON.stringify(urlFoundEntry.tests));
-    else localStorage.removeItem('parcours_tests_assigned');
-    localStorage.setItem('parcours_tests_hidden',JSON.stringify(urlFoundEntry.hiddenResults||{}));
-    // Garde-fou : ce code contient déjà des données pour un autre profil (ex: test du formateur lui-même)
-    const existing=JSON.parse(localStorage.getItem('parcours_profil')||'null');
-    if(existing&&existing.prenom&&(normalize(existing.prenom)!==normalize(urlPrenom)||normalize(existing.nom)!==normalize(urlNom))){
-      const clear=confirm('Ce lien (code '+urlCode+') contient déjà des données enregistrées pour « '+existing.prenom+' '+existing.nom+' », différent de « '+urlPrenom+' '+urlNom+' ».\n\nEffacer ces données pour créer le profil de '+urlPrenom+' '+urlNom+' ?');
-      if(clear){
-        ['parcours_profil','parcours_qimi','parcours_riasec','parcours_valeurs','parcours_competences','parcours_cognitif','parcours_metiers','parcours_employeurs'].forEach(k=>localStorage.removeItem(k));
-      }
-    }
+    // Le lien mène désormais au BLOC DE CONNEXION (email + mot de passe), pré-rempli.
+    // La connexion (stagiaireLogin) vérifie côté serveur et restaure la progression (multi-appareil).
+    const urlEmail=p.get('e')||'';
     document.getElementById('tb-title').textContent='Parcours de '+urlPrenom;
     history.replaceState(null,'',window.location.pathname);
-    proceedAfterAuth();
+    const eEl=document.getElementById('access-email'); if(eEl)eEl.value=urlEmail;
+    const cEl=document.getElementById('access-inp'); if(cEl)cEl.value=urlCode;
+    go('scr-access'); setTitle('Connexion'); setpg(0); setStep('');
+    // Focus sur l'email si vide, sinon sur le bouton de connexion
+    setTimeout(()=>{ if(eEl&&!eEl.value)eEl.focus(); },100);
     return;
   }
   // Vérification code d'accès — obligatoire à chaque nouvelle session navigateur
@@ -3306,7 +3281,9 @@ async function syncToServer(snap){
         nom:snap.profil.nom,
         etape,
         formateur_email:formateurEmail,
-        code:sessionStorage.getItem('stagiaire_code')||'',
+        code:sessionStorage.getItem('stagiaire_code')||localStorage.getItem('parcours_active_code')||'',
+        tests_assigned:JSON.parse(localStorage.getItem('parcours_tests_assigned')||'null'),
+        tests_hidden:JSON.parse(localStorage.getItem('parcours_tests_hidden')||'null'),
         ...snap
       })
     });
@@ -3710,6 +3687,59 @@ function proceedAfterAuth(){
   else{go('scr-welcome');setpg(5);}
 }
 
+// Connexion stagiaire par email + mot de passe (= code). Vérifiée côté serveur, avec
+// restauration de la progression depuis le serveur (reprise depuis n'importe quel appareil).
+async function stagiaireLogin(){
+  _testResumeMode=false;
+  const email=(document.getElementById('access-email').value||'').trim();
+  const code=(document.getElementById('access-inp').value||'').trim();
+  const err=document.getElementById('access-err');
+  if(!email||!code){err.textContent='Merci de saisir votre email et votre mot de passe.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.querySelector('#scr-access .btn-p');
+  if(btn){btn.disabled=true;btn.textContent='Connexion…';}
+  let serverOk=false,serverResp=null;
+  try{
+    const r=await fetch(API_URL+'?action=login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',email,code})});
+    if(r.ok){const d=await r.json();if(d&&d.ok){serverOk=true;serverResp=d;}}
+  }catch(e){/* serveur injoignable → repli local ci-dessous */}
+  if(btn){btn.disabled=false;btn.textContent='Se connecter →';}
+  if(serverOk){applyLoginSession(email,code,serverResp);return;}
+  // Repli hors-ligne / même appareil : parcours déjà présent localement pour ce code
+  const localCode=localStorage.getItem('parcours_active_code');
+  const localProfil=JSON.parse(localStorage.getItem('parcours_profil')||'null');
+  if((localCode&&localCode===code)||(localProfil&&normalize(localProfil.email)===normalize(email))){
+    sessionStorage.setItem('stagiaire_auth','1');
+    sessionStorage.setItem('stagiaire_code',code);
+    localStorage.setItem('parcours_active_code',code);
+    if(localStorage.getItem('s_'+code+'_parcours_profil'))loadStagiaireData(code);
+    proceedAfterAuth();
+    return;
+  }
+  err.textContent='Email ou mot de passe incorrect (ou connexion au serveur impossible).';
+  err.style.display='block';
+}
+
+function applyLoginSession(email,code,d){
+  sessionStorage.setItem('stagiaire_auth','1');
+  sessionStorage.setItem('stagiaire_code',code);
+  localStorage.setItem('parcours_active_code',code);
+  if(d.prenom)sessionStorage.setItem('stagiaire_nom',(d.prenom||'')+' '+(d.nom||''));
+  const snap=d.data||{};
+  const map={profil:'parcours_profil',qimi:'parcours_qimi',riasec:'parcours_riasec',valeurs:'parcours_valeurs',competences:'parcours_competences',cognitif:'parcours_cognitif',mobilite:'parcours_mobilite',freins:'parcours_freins',metiers:'parcours_metiers',employeurs:'parcours_employeurs'};
+  const serverHasProgress=snap.profil||snap.qimi||snap.riasec||snap.valeurs||snap.competences||snap.cognitif||snap.metiers;
+  if(serverHasProgress){
+    // Restaurer la progression du serveur (reprise multi-appareil)
+    Object.entries(map).forEach(([k,lsKey])=>{ if(snap[k])localStorage.setItem(lsKey,JSON.stringify(snap[k])); else localStorage.removeItem(lsKey); });
+    if(snap.tests_assigned)localStorage.setItem('parcours_tests_assigned',JSON.stringify(snap.tests_assigned));
+    if(snap.tests_hidden)localStorage.setItem('parcours_tests_hidden',JSON.stringify(snap.tests_hidden));
+    saveStagiaireNamespace();
+  }else if(localStorage.getItem('s_'+code+'_parcours_profil')){
+    loadStagiaireData(code);
+  }
+  proceedAfterAuth();
+}
+
 // ── Gestion codes stagiaires (formateur) ───────────────────────────────────
 function genCode(){return Math.random().toString(36).substr(2,6).toUpperCase();}
 
@@ -3765,8 +3795,9 @@ function addStagiaireCode(){
   if(email&&_fmtPin){
     const formateurEmail=_fmtFmt?.email||localStorage.getItem('parcours_formateur')||'';
     fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Pin':_fmtPin},
-      body:JSON.stringify({email,prenom,nom,etape:'invite',formateur_email:formateurEmail,site,
+      body:JSON.stringify({email,prenom,nom,etape:'invite',formateur_email:formateurEmail,site,code,
         profil:{prenom,nom,email,code,site},
+        tests_assigned:tests,tests_hidden:hiddenResults,
         qimi:null,riasec:null,valeurs:null,competences:null,cognitif:null,metiers:null,employeurs:null})
     }).catch(()=>{});
   }
@@ -3877,7 +3908,7 @@ function clearAllCodes(){
 async function sendInvitation(prenom,nom,code,email='',site=''){
   const base=window.location.href.split('?')[0];
   const fmtEmail=_fmtFmt?.email||'';
-  const url=`${base}?p=${encodeURIComponent(prenom)}&n=${encodeURIComponent(nom)}&c=${encodeURIComponent(code)}${fmtEmail?'&f='+encodeURIComponent(fmtEmail):''}${site?'&s='+encodeURIComponent(site):''}`;
+  const url=`${base}?p=${encodeURIComponent(prenom)}&n=${encodeURIComponent(nom)}&c=${encodeURIComponent(code)}${email?'&e='+encodeURIComponent(email):''}${fmtEmail?'&f='+encodeURIComponent(fmtEmail):''}${site?'&s='+encodeURIComponent(site):''}`;
   // Envoi direct via serveur si email disponible
   if(email && _fmtPin){
     toast('Envoi en cours…');
