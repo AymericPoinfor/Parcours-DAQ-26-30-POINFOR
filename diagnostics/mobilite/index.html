@@ -434,7 +434,7 @@ html.fs body::before { position: fixed !important; }
 }
 
 .q-img {
-  max-height: 280px;
+  max-height: 440px;
   max-width: 100%;
   border-radius: 12px;
   object-fit: contain;
@@ -1319,7 +1319,6 @@ html.fs body::before { position: fixed !important; }
         </div>
         <div style="margin-top:14px;text-align:center;">
           <input type="email" id="field-email" placeholder="Votre adresse email" style="padding:9px 16px;border:1.5px solid var(--border);border-radius:50px;font-size:14px;width:300px;max-width:100%;background:var(--card);color:var(--text);outline:none;display:block;margin:0 auto 8px;">
-          <input type="email" id="field-email-formateur" placeholder="Email de votre formateur" style="padding:9px 16px;border:1.5px solid var(--border);border-radius:50px;font-size:14px;width:300px;max-width:100%;background:var(--card);color:var(--text);outline:none;">
         </div>
         <div id="email-status" style="margin-top:10px;font-size:13px;text-align:center;"></div>
       </div>
@@ -1463,17 +1462,11 @@ function toggleTheme() {
 
 async function sendEmail() {
   var email          = (document.getElementById('field-email').value           || '').trim();
-  var emailFormateur = (document.getElementById('field-email-formateur').value || '').trim();
   var status = document.getElementById('email-status');
 
   if (!email) {
     status.style.color = '#e05c2a';
     status.textContent = 'Veuillez saisir votre adresse email.';
-    return;
-  }
-  if (!emailFormateur) {
-    status.style.color = '#e05c2a';
-    status.textContent = 'Veuillez saisir l\'adresse email de votre formateur.';
     return;
   }
 
@@ -1501,7 +1494,6 @@ async function sendEmail() {
 
   emailjs.send('service_cjlyqsy', 'template_ggtnlqs', {
     to_email:         email,
-    cc_email:         emailFormateur,
     stagiaire_prenom: prenom,
     stagiaire_nom:    nom,
     date:             today,
@@ -1511,7 +1503,7 @@ async function sendEmail() {
     test_desc:        'Test de connaissances — signalisation, circulation et orientation'
   }).then(function() {
     status.style.color = '#2aae6f';
-    status.textContent = '✅ PDF téléchargé — Email envoyé à ' + email + ' et à votre formateur.';
+    status.textContent = '✅ PDF téléchargé — Email envoyé à ' + email + '.';
     btn.disabled = false;
     setTimeout(function(){ try{ if(API) API.LMSFinish(''); window.close(); }catch(e){} }, 3000);
   }).catch(function(err) {

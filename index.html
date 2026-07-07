@@ -655,6 +655,10 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <button class="btn btn-p" id="diag-continue-btn" disabled onclick="diagContinue()" style="white-space:nowrap;">Terminez le diagnostic…</button>
   </div>
   <iframe id="diag-frame" title="Diagnostic" style="display:block;width:100%;height:calc(100vh - 58px);border:0;background:#fff;"></iframe>
+  <div id="diag-bottombar" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;background:linear-gradient(135deg,#1a1a2e,#0f3460);border-top:1px solid rgba(255,255,255,.15);padding:14px 16px;box-shadow:0 -6px 24px rgba(0,0,0,.4);text-align:center;">
+    <div style="font-size:.85rem;color:rgba(255,255,255,.7);margin-bottom:8px;">✅ Diagnostic terminé — vos résultats sont enregistrés</div>
+    <button class="btn btn-p btn-lg" onclick="diagContinue()" style="font-size:1.05rem;padding:12px 28px;">Continuer le parcours →</button>
+  </div>
 </div>
 
 <!-- ══ QIMI INSTRUCTIONS ══ -->
@@ -1868,10 +1872,12 @@ function openDiag(key){
   document.getElementById('diag-title').textContent=meta.emoji+' '+meta.name;
   const btn=document.getElementById('diag-continue-btn');
   btn.disabled=true; btn.textContent='Terminez le diagnostic…';
-  document.getElementById('diag-frame').src='diagnostics/'+key+'/index.html';
+  document.getElementById('diag-bottombar').style.display='none';
+  // ?v=… : force le rechargement du diagnostic après mise à jour (évite le cache navigateur). Incrémenter à chaque modif d'un diagnostic.
+  document.getElementById('diag-frame').src='diagnostics/'+key+'/index.html?v=20260707';
   go('scr-diag');setpg(50);setStep('Diagnostic');setTitle(meta.name);setCounter('');
 }
-function diagContinue(){ const k=_currentDiag; _currentDiag=null; document.getElementById('diag-frame').src='about:blank'; goAfter(k); }
+function diagContinue(){ const k=_currentDiag; _currentDiag=null; document.getElementById('diag-bottombar').style.display='none'; document.getElementById('diag-frame').src='about:blank'; goAfter(k); }
 window.addEventListener('message',function(ev){
   const d=ev&&ev.data;
   if(!d||typeof d!=='object'||!d.diagResult)return;
@@ -1881,6 +1887,8 @@ window.addEventListener('message',function(ev){
   try{ saveToProfilsList(); }catch(e){}
   const btn=document.getElementById('diag-continue-btn');
   if(btn){ btn.disabled=false; btn.textContent='Continuer le parcours →'; }
+  const bar=document.getElementById('diag-bottombar');
+  if(bar) bar.style.display='block';
   try{ toast('Diagnostic terminé ✓ — vous pouvez continuer','ok'); }catch(e){}
 });
 

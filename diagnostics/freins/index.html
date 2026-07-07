@@ -897,7 +897,6 @@ canvas { display: block; margin: 0 auto; }
     </div>
     <div style="margin-top:14px;text-align:center;">
       <input type="email" id="field-email" placeholder="Votre adresse email" style="padding:9px 16px;border:1.5px solid var(--border);border-radius:50px;font-size:14px;width:300px;max-width:100%;background:var(--surface);color:var(--text);outline:none;display:block;margin:0 auto 8px;">
-      <input type="email" id="field-email-formateur" placeholder="Email de votre formateur" style="padding:9px 16px;border:1.5px solid var(--border);border-radius:50px;font-size:14px;width:300px;max-width:100%;background:var(--surface);color:var(--text);outline:none;">
     </div>
     <div id="email-status" style="margin-top:10px;font-size:13px;text-align:center;"></div>
   </div>
@@ -1710,17 +1709,11 @@ applySavedTheme();
 
 async function sendEmail() {
   const email          = (document.getElementById('field-email').value           || '').trim();
-  const emailFormateur = (document.getElementById('field-email-formateur').value || '').trim();
   const status = document.getElementById('email-status');
 
   if (!email) {
     status.style.color = '#e05c2a';
     status.textContent = 'Veuillez saisir votre adresse email.';
-    return;
-  }
-  if (!emailFormateur) {
-    status.style.color = '#e05c2a';
-    status.textContent = 'Veuillez saisir l\'adresse email de votre formateur.';
     return;
   }
 
@@ -1748,7 +1741,6 @@ async function sendEmail() {
 
   emailjs.send('service_cjlyqsy', 'template_ggtnlqs', {
     to_email:         email,
-    cc_email:         emailFormateur,
     stagiaire_prenom: learnerFirstName || 'Stagiaire',
     stagiaire_nom:    learnerLastName  || '',
     date:             today,
@@ -1758,7 +1750,7 @@ async function sendEmail() {
     scores_detail:    detail
   }).then(() => {
     status.style.color = '#2aae6f';
-    status.textContent = '✅ PDF téléchargé — Email envoyé à ' + email + ' et à votre formateur.';
+    status.textContent = '✅ PDF téléchargé — Email envoyé à ' + email + '.';
     btn.disabled = false;
     setTimeout(() => { try { if(SCORM) SCORM.LMSFinish(''); window.close(); } catch(e){} }, 3000);
   }).catch((err) => {
