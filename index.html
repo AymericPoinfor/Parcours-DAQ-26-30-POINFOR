@@ -1110,6 +1110,10 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       <input id="fmt-st-nom" class="ef-inp" style="flex:1;min-width:110px;" placeholder="Nom *">
       <input id="fmt-st-code" class="ef-inp" style="flex:1;min-width:100px;max-width:140px;" placeholder="Code (auto)">
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:.82rem;font-weight:700;color:var(--muted);">📍 Site de formation :</span>
+      <select id="fmt-st-site" class="ef-inp" style="flex:1;min-width:140px;max-width:220px;"></select>
+    </div>
     <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;align-items:center;font-size:.82rem;color:var(--muted);">
       <span style="font-weight:700;">Tests à affecter :</span>
       <span id="fmt-st-tests-checks" style="display:flex;gap:14px;flex-wrap:wrap;"></span>
@@ -1707,7 +1711,9 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
   const urlNom=p.get('n')||'';
   const urlCode=p.get('c')||'';
   const urlFmt=p.get('f')||'';
+  const urlSite=p.get('s')||'';
   if(urlFmt) localStorage.setItem('parcours_formateur',urlFmt);
+  if(urlSite) localStorage.setItem('parcours_site',urlSite);
   if(urlPrenom&&urlNom&&urlCode){
     const list=getStagiairesList();
     let urlFoundEntry=list.find(s=>s.code===urlCode);
@@ -1797,7 +1803,7 @@ function valForm(){
   if(!naiss){setErr('fd-naiss','Date de naissance requise');ok=false;}
   if(!ok){toast('Complétez les champs obligatoires','err');return;}
   const age=naiss?Math.floor((Date.now()-new Date(naiss))/(365.25*24*3600*1000)):null;
-  const profil={prenom,nom,email,tel:document.getElementById('inp-tel').value.trim(),naiss,age,cp:document.getElementById('inp-cp').value.trim(),sit:st.sit||'Non renseignée',niveau:st.niveau||'Non renseigné',obj:document.getElementById('inp-obj').value.trim(),photo:st.photo,date:new Date().toISOString()};
+  const profil={prenom,nom,email,tel:document.getElementById('inp-tel').value.trim(),naiss,age,cp:document.getElementById('inp-cp').value.trim(),sit:st.sit||'Non renseignée',niveau:st.niveau||'Non renseigné',obj:document.getElementById('inp-obj').value.trim(),photo:st.photo,site:localStorage.getItem('parcours_site')||'',date:new Date().toISOString()};
   try{
     localStorage.setItem('parcours_profil',JSON.stringify(profil));
   }catch(err){
@@ -3413,6 +3419,7 @@ function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid){
     `<span><b>Email :</b> ${p.email||'—'}</span>`+
     `<span><b>Situation :</b> ${p.sit||'—'}</span>`+
     `<span><b>Niveau :</b> ${p.niveau||'—'}</span>`+
+    (p.site?`<span><b>Site :</b> ${p.site}</span>`:'')+
     (loc?`<span><b>Région :</b> ${loc.dept}</span>`:'');
   // QIMI (tous les domaines détaillés)
   const qEl=document.getElementById('pbc-qimi');
@@ -3703,6 +3710,12 @@ function renderTestCheckboxes(){
     `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="fmt-st-test-${t.key}" ${dt[t.key]?'checked':''} onchange="toggleHideCheck('fmt-st',this)"> ${t.emoji} ${t.name}</label>`+
     (t.hideable?`<label id="fmt-st-hide-wrap-${t.key}" style="display:${dt[t.key]?'flex':'none'};align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="fmt-st-hide-${t.key}"> 🙈 Masquer au stagiaire</label>`:'')
   ).join('');
+  // Site de formation du stagiaire : pré-rempli avec le site du formateur, modifiable
+  const siteSel=document.getElementById('fmt-st-site');
+  if(siteSel){
+    const cur=_fmtFmt?.site||'';
+    siteSel.innerHTML=POINFOR_SITES.map(s=>`<option value="${s}"${s===cur?' selected':''}>${s}</option>`).join('');
+  }
 }
 function toggleHideCheck(prefix,checkbox){
   const key=checkbox.id.replace(prefix+'-test-','');
@@ -3714,6 +3727,7 @@ function addStagiaireCode(){
   const prenom=document.getElementById('fmt-st-prenom').value.trim();
   const nom=document.getElementById('fmt-st-nom').value.trim();
   const email=document.getElementById('fmt-st-email').value.trim();
+  const site=(document.getElementById('fmt-st-site')?.value||_fmtFmt?.site||'').trim();
   let code=document.getElementById('fmt-st-code').value.trim().toUpperCase();
   if(!prenom||!nom){toast('Prénom et nom requis','err');return;}
   if(!code)code=genCode();
@@ -3723,7 +3737,7 @@ function addStagiaireCode(){
   ALL_TESTS.forEach(k=>{tests[k]=document.getElementById('fmt-st-test-'+k).checked;});
   const hiddenResults={};
   TESTS_ORDER.filter(t=>t.hideable).forEach(t=>{const h=document.getElementById('fmt-st-hide-'+t.key);hiddenResults[t.key]=!!(h&&h.checked);});
-  list.push({prenom,nom,code,email,tests,hiddenResults});
+  list.push({prenom,nom,code,email,site,tests,hiddenResults});
   saveStagiairesList(list);
   document.getElementById('fmt-st-prenom').value='';
   document.getElementById('fmt-st-nom').value='';
@@ -3732,13 +3746,13 @@ function addStagiaireCode(){
   renderTestCheckboxes();
   renderCodesList();
   toast(prenom+' '+nom+' — code : '+code,'ok');
-  if(email) sendInvitation(prenom,nom,code,email);
+  if(email) sendInvitation(prenom,nom,code,email,site);
   // Enregistrer sur le serveur comme "en attente" (uniquement si email fourni, pour éviter les doublons)
   if(email&&_fmtPin){
     const formateurEmail=_fmtFmt?.email||localStorage.getItem('parcours_formateur')||'';
     fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Pin':_fmtPin},
-      body:JSON.stringify({email,prenom,nom,etape:'invite',formateur_email:formateurEmail,
-        profil:{prenom,nom,email,code},
+      body:JSON.stringify({email,prenom,nom,etape:'invite',formateur_email:formateurEmail,site,
+        profil:{prenom,nom,email,code,site},
         qimi:null,riasec:null,valeurs:null,competences:null,cognitif:null,metiers:null,employeurs:null})
     }).catch(()=>{});
   }
@@ -3771,7 +3785,7 @@ function renderCodesList(){
       `<button class="btn btn-s" style="padding:4px 8px;font-size:.85rem;flex-shrink:0;letter-spacing:.1em;" title="Modifier les tests affectés" onclick="editStagiaireTests('${s.code}')">${testsBadge}</button>`+
       `<div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--gold);letter-spacing:.1em;flex-shrink:0;">${s.code}</div>`+
       `<div style="font-size:.72rem;color:${hasDone?'var(--ok)':'var(--muted)'};flex-shrink:0;">${hasDone?'✓ En cours':'–'}</div>`+
-      `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;flex-shrink:0;"${emailAttr} onclick="sendInvitation('${s.prenom}','${s.nom}','${s.code}','${s.email||''}')">📧</button>`+
+      `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;flex-shrink:0;"${emailAttr} onclick="sendInvitation('${s.prenom}','${s.nom}','${s.code}','${s.email||''}','${s.site||''}')">📧</button>`+
       `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;color:#f77a7a;flex-shrink:0;" onclick="removeStagiaireCode('${s.code}')">✕</button>`;
     el.appendChild(row);
   });
@@ -3846,10 +3860,10 @@ function clearAllCodes(){
   toast('Codes supprimés','ok');
 }
 
-async function sendInvitation(prenom,nom,code,email=''){
+async function sendInvitation(prenom,nom,code,email='',site=''){
   const base=window.location.href.split('?')[0];
   const fmtEmail=_fmtFmt?.email||'';
-  const url=`${base}?p=${encodeURIComponent(prenom)}&n=${encodeURIComponent(nom)}&c=${encodeURIComponent(code)}${fmtEmail?'&f='+encodeURIComponent(fmtEmail):''}`;
+  const url=`${base}?p=${encodeURIComponent(prenom)}&n=${encodeURIComponent(nom)}&c=${encodeURIComponent(code)}${fmtEmail?'&f='+encodeURIComponent(fmtEmail):''}${site?'&s='+encodeURIComponent(site):''}`;
   // Envoi direct via serveur si email disponible
   if(email && _fmtPin){
     toast('Envoi en cours…');
@@ -4452,16 +4466,18 @@ function filterAdminGlobal(site,btn){
 
 function renderAdminGlobal(data){
   const listEl=document.getElementById('admin-global-list');
+  // Site effectif du stagiaire : son propre site (choisi à l'inscription) sinon celui de son formateur
+  const siteOf=s=>(s.profil?.site||s._meta?.site||'');
   const filtered=data||(
     _adminFmtFilter==='all'?_adminAllStagiaires:
-    _adminFmtFilter==='_sans_site'?_adminAllStagiaires.filter(s=>!s._meta?.site):
-    _adminAllStagiaires.filter(s=>(s._meta?.site||'')===_adminFmtFilter)
+    _adminFmtFilter==='_sans_site'?_adminAllStagiaires.filter(s=>!siteOf(s)):
+    _adminAllStagiaires.filter(s=>siteOf(s)===_adminFmtFilter)
   );
   if(!filtered.length){listEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Aucun stagiaire</div>';return;}
   // Groupement : site → formation + formateur
   const siteGroups={};
   filtered.forEach(s=>{
-    const site=s._meta?.site||'Non assigné';
+    const site=siteOf(s)||'Non assigné';
     const subKey=(s._meta?.formation||'Sans formation')+' — '+(s._meta?.fmt_prenom||'')+(s._meta?.fmt_nom?' '+s._meta.fmt_nom:'');
     if(!siteGroups[site])siteGroups[site]={};
     if(!siteGroups[site][subKey])siteGroups[site][subKey]=[];
@@ -4842,7 +4858,7 @@ async function renderFormateurDashboard(){
         <div class="fmt-avatar">${avatar}</div>
         <div style="flex:1;min-width:120px;">
           <div style="font-size:1rem;font-weight:800;">${p.prenom} ${p.nom}</div>
-          <div style="font-size:.76rem;color:var(--muted);">${p.email||''}${p.age?' · '+p.age+' ans':''}${p.sit?' · '+p.sit:''}</div>
+          <div style="font-size:.76rem;color:var(--muted);">${p.email||''}${p.age?' · '+p.age+' ans':''}${p.sit?' · '+p.sit:''}${p.site?' · 📍 '+p.site:''}</div>
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
           ${chip(hasQ,'QIMI')}${chip(hasR,'RIASEC')}${chip(hasM,'Métiers')}
@@ -5114,7 +5130,7 @@ function showStagiaireDetail(idx){
         ${avatarHtml}
         <div style="flex:1;">
           <div style="font-size:1.3rem;font-weight:800;color:#fff;">${p.prenom} ${p.nom}</div>
-          <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-top:3px;">${p.email||''}${p.age?' · '+p.age+' ans':''}${p.sit?' · '+p.sit:''}</div>
+          <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-top:3px;">${p.email||''}${p.age?' · '+p.age+' ans':''}${p.sit?' · '+p.sit:''}${p.site?' · 📍 '+p.site:''}</div>
           <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${qd?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${qd?'#4fe08a':'#aaa'};">QIMI ${qd?'✓':'—'}</span>
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${rd?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${rd?'#4fe08a':'#aaa'};">RIASEC ${rd?'✓':'—'}</span>
@@ -5294,7 +5310,7 @@ async function exportAllPDF(){
         <div style="width:36px;height:36px;border-radius:50%;background:#1e4dd8;display:flex;align-items:center;justify-content:center;font-size:10pt;font-weight:800;color:#fff;flex-shrink:0;">${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`${avatar}`}</div>
         <div style="flex:1;">
           <div style="font-size:10.5pt;font-weight:800;">${p.prenom} ${p.nom}</div>
-          <div style="font-size:7.5pt;color:#555;">${p.email||''}${p.age?' · '+p.age+' ans':''}${p.sit?' · '+p.sit:''}${p.cp?' · CP '+p.cp:''}</div>
+          <div style="font-size:7.5pt;color:#555;">${p.email||''}${p.age?' · '+p.age+' ans':''}${p.sit?' · '+p.sit:''}${p.site?' · 📍 '+p.site:''}${p.cp?' · CP '+p.cp:''}</div>
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
           ${stepChip(!!qd,'QIMI')}${stepChip(!!rd,'RIASEC')}${stepChip(!!(md?.selected?.length),'Métiers')}
