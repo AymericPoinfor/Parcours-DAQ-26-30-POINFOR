@@ -539,7 +539,10 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     </div>
     <div class="field" style="margin-bottom:16px;text-align:left;">
       <label>Mot de passe <span class="req">*</span></label>
-      <input type="password" id="access-inp" class="ef-inp" placeholder="Code fourni par votre formateur" autocomplete="current-password" onkeydown="if(event.key==='Enter')stagiaireLogin()">
+      <div style="position:relative;">
+        <input type="password" id="access-inp" class="ef-inp" style="padding-right:44px;" placeholder="Code fourni par votre formateur" autocomplete="current-password" onkeydown="if(event.key==='Enter')stagiaireLogin()">
+        <button type="button" id="access-eye" onclick="togglePwd()" aria-label="Afficher le mot de passe" title="Afficher / masquer le mot de passe" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;padding:6px;color:var(--muted);">👁️</button>
+      </div>
     </div>
     <div id="access-err" style="display:none;color:#f77a7a;font-size:.82rem;margin-bottom:12px;line-height:1.5;">Email ou mot de passe incorrect.</div>
     <button class="btn btn-p btn-full" onclick="stagiaireLogin()">Se connecter →</button>
@@ -3684,6 +3687,16 @@ function proceedAfterAuth(){
   const saved=localStorage.getItem('parcours_profil');
   if(saved){try{showResumeModal(JSON.parse(saved));}catch(e){go('scr-welcome');setpg(5);}}
   else{go('scr-welcome');setpg(5);}
+}
+
+// Affiche / masque le mot de passe (œil)
+function togglePwd(){
+  const inp=document.getElementById('access-inp'), eye=document.getElementById('access-eye');
+  if(!inp||!eye)return;
+  const show=inp.type==='password';
+  inp.type=show?'text':'password';
+  eye.textContent=show?'🙈':'👁️';
+  eye.setAttribute('aria-label',show?'Masquer le mot de passe':'Afficher le mot de passe');
 }
 
 // Connexion stagiaire par email + mot de passe (= code). Vérifiée côté serveur, avec
