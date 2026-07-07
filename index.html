@@ -2403,16 +2403,27 @@ async function captureAndSave(el,filename){
     const margin=14,pw=pageW-margin*2;
     const totalH=(canvas.height/canvas.width)*pw;
     const pageSliceH=Math.floor((canvas.height/totalH)*(pageH-margin*2));
+    // Points de coupure "sûrs" = début de chaque section de 1er niveau, pour couper ENTRE les sections
+    // (dans les marges) plutôt qu'au milieu d'un titre ou d'un contenu.
+    const ratio=canvas.height/el.scrollHeight;
+    const elTop=el.getBoundingClientRect().top;
+    const breaks=[...el.children].map(c=>Math.round((c.getBoundingClientRect().top-elTop)*ratio)).filter(y=>y>1);
     let yPos=0;
     while(yPos<canvas.height){
-      const sliceH=Math.min(pageSliceH,canvas.height-yPos);
+      let sliceEnd=Math.min(yPos+pageSliceH,canvas.height);
+      if(sliceEnd<canvas.height){
+        // reculer jusqu'au dernier début de section situé dans la moitié basse de la page
+        const safe=breaks.filter(y=>y>yPos+pageSliceH*0.5&&y<=sliceEnd).pop();
+        if(safe)sliceEnd=safe;
+      }
+      const sliceH=sliceEnd-yPos;
       const sliceCanvas=document.createElement('canvas');
       sliceCanvas.width=canvas.width;sliceCanvas.height=sliceH;
       sliceCanvas.getContext('2d').drawImage(canvas,0,yPos,canvas.width,sliceH,0,0,canvas.width,sliceH);
       const sliceH_mm=(sliceH/canvas.height)*totalH;
       if(yPos>0)pdf.addPage();
       pdf.addImage(sliceCanvas.toDataURL('image/jpeg',.92),'JPEG',margin,margin,pw,sliceH_mm);
-      yPos+=sliceH;
+      yPos=sliceEnd;
     }
     pdf.save(filename);
   }finally{el.style.display='none';}
