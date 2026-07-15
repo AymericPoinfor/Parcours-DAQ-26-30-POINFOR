@@ -1011,6 +1011,11 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div id="action-pending-tests"></div>
   </div>
 
+  <!-- Bouton vérification des nouveaux tests -->
+  <div style="text-align:right;margin-bottom:8px;">
+    <button id="btn-refresh-tests" class="btn btn-s" style="font-size:.78rem;padding:5px 12px;opacity:.7;" onclick="refreshTestsFromServer()">🔄 Vérifier mes tests</button>
+  </div>
+
   <!-- Carte stats -->
   <div class="card" style="margin-bottom:12px;">
     <div style="text-align:center;margin-bottom:14px;">
@@ -2880,11 +2885,33 @@ function renderPendingTestsBanner(){
   const pending=pendingTests();
   if(!pending.length){card.style.display='none';el.innerHTML='';return;}
   card.style.display='block';
-  el.innerHTML=`<div style="font-size:.95rem;font-weight:800;margin-bottom:6px;">🆕 ${pending.length>1?'Nouveaux tests à compléter':'Nouveau test à compléter'}</div>`+
-    `<div style="font-size:.8rem;color:var(--muted);margin-bottom:12px;">Votre formateur a ajouté ${pending.length>1?'ces tests':'ce test'} à votre parcours. Vous pouvez les réaliser maintenant, puis revenir à votre plan d'action.</div>`+
+  el.innerHTML=
+    `<div style="font-size:.95rem;font-weight:800;margin-bottom:4px;">🆕 ${pending.length>1?pending.length+' tests à compléter':'1 test à compléter'}</div>`+
+    `<div style="font-size:.8rem;color:var(--muted);margin-bottom:12px;">Votre formateur a ajouté ${pending.length>1?'ces évaluations':'cette évaluation'} à votre parcours.</div>`+
     `<div style="display:flex;gap:8px;flex-wrap:wrap;">`+
     pending.map(t=>`<button class="btn btn-p" style="flex:1;min-width:160px;" onclick="startPendingTest('${t.key}')">${t.emoji} ${t.name} →</button>`).join('')+
     `</div>`;
+}
+
+async function refreshTestsFromServer(){
+  const code=sessionStorage.getItem('stagiaire_code');
+  if(!code){toast('Session expirée — reconnectez-vous','err');return;}
+  const btn=document.getElementById('btn-refresh-tests');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Vérification…';}
+  try{
+    const r=await fetch(API_URL+'?action=get_tests&code='+encodeURIComponent(code));
+    const d=await r.json();
+    if(d.ok&&d.tests_assigned){
+      localStorage.setItem('parcours_tests_assigned',JSON.stringify(d.tests_assigned));
+      if(d.tests_hidden)localStorage.setItem('parcours_tests_hidden',JSON.stringify(d.tests_hidden));
+      renderPendingTestsBanner();
+      const pending=pendingTests();
+      toast(pending.length?`${pending.length} nouveau(x) test(s) disponible(s) !`:'Aucun nouveau test','ok');
+    }else{
+      toast('Aucune mise à jour disponible','ok');
+    }
+  }catch(e){toast('Serveur indisponible','err');}
+  finally{if(btn){btn.disabled=false;btn.textContent='🔄 Vérifier mes tests';}}
 }
 
 function buildAction(){
@@ -3886,6 +3913,12 @@ function saveStagiaireTests(code){
   s.tests=tests;
   s.hiddenResults=hiddenResults;
   saveStagiairesList(list);
+  // Synchroniser sur le serveur pour que le stagiaire récupère ses nouveaux tests au prochain login
+  if(_fmtPin){
+    fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Pin':_fmtPin},
+      body:JSON.stringify({action:'update_tests',code,tests_assigned:tests,tests_hidden:hiddenResults})
+    }).catch(()=>{});
+  }
   document.getElementById('edit-tests-modal').style.display='none';
   renderCodesList();
   toast('Tests mis à jour','ok');
