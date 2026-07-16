@@ -3654,7 +3654,7 @@ function sKey(k){
 
 // Charger les données d'un stagiaire dans les clés actives
 function loadStagiaireData(code){
-  ['parcours_profil','parcours_qimi','parcours_riasec','parcours_valeurs','parcours_competences','parcours_cognitif','parcours_metiers','parcours_employeurs'].forEach(k=>{
+  ['parcours_profil','parcours_qimi','parcours_riasec','parcours_valeurs','parcours_competences','parcours_cognitif','parcours_mobilite','parcours_freins','parcours_metiers','parcours_employeurs'].forEach(k=>{
     const v=localStorage.getItem('s_'+code+'_'+k);
     if(v)localStorage.setItem(k,v);
     else localStorage.removeItem(k);
@@ -3665,7 +3665,7 @@ function loadStagiaireData(code){
 function saveStagiaireNamespace(){
   const code=sessionStorage.getItem('stagiaire_code');
   if(!code)return;
-  ['parcours_profil','parcours_qimi','parcours_riasec','parcours_valeurs','parcours_competences','parcours_cognitif','parcours_metiers','parcours_employeurs'].forEach(k=>{
+  ['parcours_profil','parcours_qimi','parcours_riasec','parcours_valeurs','parcours_competences','parcours_cognitif','parcours_mobilite','parcours_freins','parcours_metiers','parcours_employeurs'].forEach(k=>{
     const v=localStorage.getItem(k);
     if(v)localStorage.setItem('s_'+code+'_'+k,v);
   });
