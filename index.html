@@ -1742,28 +1742,17 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
     setTimeout(()=>{ if(eEl&&!eEl.value)eEl.focus(); },100);
     return;
   }
-  // Vérification code d'accès — obligatoire à chaque nouvelle session navigateur
+  // Vérification authentification de session
   const authenticated=sessionStorage.getItem('stagiaire_auth')==='1';
-  if(!authenticated){
-    // Reprise automatique : ce navigateur contient déjà un parcours en cours (même appareil),
-    // même sans les paramètres du lien et après fermeture du navigateur → on reprend sans re-saisir le code.
-    const activeCode=localStorage.getItem('parcours_active_code');
-    if(activeCode && saved){
-      sessionStorage.setItem('stagiaire_auth','1');
-      sessionStorage.setItem('stagiaire_code',activeCode);
-      // Restaurer depuis l'espace du stagiaire seulement s'il existe (sinon garder les données actives)
-      if(localStorage.getItem('s_'+activeCode+'_parcours_profil')) loadStagiaireData(activeCode);
-      const sp=localStorage.getItem('parcours_profil');
-      if(sp){try{showResumeModal(JSON.parse(sp));}catch(e){}}
-      return;
-    }
-    go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');
+  if(authenticated){
+    // Session active (même onglet ou onglet non fermé) → tableau de bord directement
+    _dashboardMode=true;
+    if(saved){try{JSON.parse(saved);goStagiaireDashboard();}catch(e){go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');}}
+    else{go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');}
     return;
   }
-  // Déjà authentifié cette session → modale reprise si données
-  if(saved){
-    try{showResumeModal(JSON.parse(saved));}catch(e){}
-  }
+  // Non authentifié → écran d'accueil systématiquement
+  go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');
 })();
 
 // ══════════════════════════════════════════
