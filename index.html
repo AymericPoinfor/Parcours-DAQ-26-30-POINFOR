@@ -1004,6 +1004,16 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   </div>
 </div>
 
+<!-- ══ TABLEAU DE BORD STAGIAIRE ══ -->
+<div class="scr" id="scr-stagiaire-dashboard">
+  <div style="margin-bottom:20px;">
+    <div id="std-greeting" style="font-size:1.4rem;font-weight:800;margin-bottom:4px;">Mon parcours</div>
+    <div id="std-subtitle" style="font-size:.82rem;color:var(--muted);">Démarrez ou reprenez vos évaluations à tout moment.</div>
+  </div>
+  <div id="std-tests-list"></div>
+  <div id="std-cta" style="margin-top:20px;"></div>
+</div>
+
 <!-- ══ PLAN D'ACTION (Phase 5) ══ -->
 <div class="scr" id="scr-action">
 
@@ -1852,15 +1862,21 @@ function nextTestAfter(stageKey){
   return null;
 }
 let _testResumeMode=false;
+let _dashboardMode=false;
 function labelAfter(stageKey){
   if(_testResumeMode)return"← Retour à mon plan d'action";
+  if(_dashboardMode)return"← Retour à mon tableau de bord";
   const n=nextTestAfter(stageKey);return n?n.label:'Choisir mes métiers →';
 }
 function goAfter(stageKey){
   if(_testResumeMode){_testResumeMode=false;buildAction();go('scr-action');setpg(100);setStep('Étape 8 / 8');setTitle('Mon plan d\'action');setCounter('');return;}
+  if(_dashboardMode){goStagiaireDashboard();return;}
   const n=nextTestAfter(stageKey);if(n)n.start();else goMetiers();
 }
-function goAfterProfil(){goAfter(null);}
+function goAfterProfil(){
+  if(_dashboardMode){goStagiaireDashboard();return;}
+  goAfter(null);
+}
 function goAfterQimi(){goAfter('qimi');}
 function goAfterRiasec(){goAfter('riasec');}
 
@@ -3721,9 +3737,74 @@ function checkAccessCode(){
   }
 }
 
+function goStagiaireDashboard(){
+  _dashboardMode=true;
+  _testResumeMode=false;
+  renderStagiaireDashboard();
+  go('scr-stagiaire-dashboard');
+  setpg(0);setStep('');setTitle('Mon parcours');setCounter('');
+}
+
+function renderStagiaireDashboard(){
+  const profil=JSON.parse(localStorage.getItem('parcours_profil')||'null');
+  const assigned=getAssignedTests();
+  const hidden=getHiddenTests();
+
+  // Greeting
+  const greetEl=document.getElementById('std-greeting');
+  if(greetEl&&profil?.prenom)greetEl.textContent='Bonjour '+profil.prenom+' 👋';
+
+  // Tests list
+  const listEl=document.getElementById('std-tests-list');
+  if(!listEl)return;
+  const visibleTests=TESTS_ORDER.filter(t=>assigned[t.key]&&!hidden[t.key]);
+  if(!visibleTests.length){
+    listEl.innerHTML='<div class="card" style="text-align:center;color:var(--muted);padding:24px;">Aucun test assigné pour le moment.</div>';
+  }else{
+    listEl.innerHTML=visibleTests.map(t=>{
+      const done=!!localStorage.getItem('parcours_'+t.key);
+      const statusBg=done?'rgba(62,207,142,.12)':'rgba(255,255,255,.04)';
+      const statusBorder=done?'1px solid rgba(62,207,142,.3)':'1px solid var(--card-border)';
+      const statusColor=done?'var(--ok)':'var(--muted)';
+      const statusLabel=done?'✅ Terminé':'⬜ À faire';
+      const btnLabel=done?'🔄 Refaire':'▶ Démarrer';
+      const btnStyle=done?'background:rgba(255,255,255,.07);color:var(--muted);border:1px solid var(--card-border);':'';
+      return`<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;margin-bottom:10px;background:${statusBg};border:${statusBorder};transition:.2s;">
+        <div style="font-size:2rem;flex-shrink:0;">${t.emoji}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:.95rem;">${t.name}</div>
+          <div style="font-size:.75rem;color:${statusColor};font-weight:600;margin-top:2px;">${statusLabel}</div>
+        </div>
+        <button class="btn btn-s" style="flex-shrink:0;${btnStyle}" onclick="startTestFromDashboard('${t.key}')">${btnLabel}</button>
+      </div>`;
+    }).join('');
+  }
+
+  // CTA bottom
+  const ctaEl=document.getElementById('std-cta');
+  if(!ctaEl)return;
+  const metiers=localStorage.getItem('parcours_metiers');
+  const allDone=visibleTests.every(t=>!!localStorage.getItem('parcours_'+t.key));
+  if(metiers){
+    ctaEl.innerHTML=`<button class="btn btn-p btn-lg btn-full" onclick="buildAction();go('scr-action');setpg(100);setStep('Étape 8 / 8');setTitle('Mon plan d\'action');setCounter('');">🎯 Mon plan d'action →</button>`;
+  }else if(allDone&&visibleTests.length>0){
+    ctaEl.innerHTML=`<button class="btn btn-p btn-lg btn-full" onclick="goMetiers()">💼 Choisir mes métiers →</button>`;
+  }else{
+    ctaEl.innerHTML='';
+  }
+}
+
+function startTestFromDashboard(key){
+  _dashboardMode=true;
+  _testResumeMode=false;
+  const t=TESTS_ORDER.find(x=>x.key===key);
+  if(t)t.start();
+}
+
 function proceedAfterAuth(){
+  _dashboardMode=true;
   const saved=localStorage.getItem('parcours_profil');
-  if(saved){try{showResumeModal(JSON.parse(saved));}catch(e){go('scr-welcome');setpg(5);}}
+  if(saved){try{JSON.parse(saved);goStagiaireDashboard();}catch(e){go('scr-welcome');setpg(5);}}
   else{go('scr-welcome');setpg(5);}
 }
 
