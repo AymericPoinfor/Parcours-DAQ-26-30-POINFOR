@@ -5238,6 +5238,8 @@ function showStagiaireDetail(idx){
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${vd?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${vd?'#4fe08a':'#aaa'};">Valeurs ${vd?'✓':'—'}</span>
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${cd?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${cd?'#4fe08a':'#aaa'};">Compétences ${cd?'✓':'—'}</span>
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${gd?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${gd?'#4fe08a':'#aaa'};">Cognitif ${gd?'✓':'—'}</span>
+            <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${mobd?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${mobd?'#4fe08a':'#aaa'};">Mobilité ${mobd?'✓':'—'}</span>
+            <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${freid?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${freid?'#4fe08a':'#aaa'};">Freins ${freid?'✓':'—'}</span>
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${md?'rgba(62,207,142,.2)':'rgba(255,255,255,.08)'};color:${md?'#4fe08a':'#aaa'};">Métiers ${md?'✓':'—'}</span>
             <span style="font-size:.7rem;padding:3px 8px;border-radius:5px;background:${empList.length?'rgba(79,142,247,.2)':'rgba(255,255,255,.08)'};color:${empList.length?'#6aacff':'#aaa'};">${empList.length} employeur${empList.length>1?'s':''}</span>
           </div>
@@ -5256,8 +5258,8 @@ function showStagiaireDetail(idx){
           <div>${sec('Compétences transversales','🧩',competencesHtml)}</div>
         </div>
         ${sec('Profil d\'apprentissage et de fonctionnement cognitif','🧮',cognitifHtml)}
-        ${mobd?sec('Diagnostic Mobilité','🚗',mobiliteHtml):''}
-        ${freid?sec('Diagnostic des freins à l\'emploi','🚧',freinsHtml):''}
+        ${sec('Diagnostic Mobilité','🚗',mobiliteHtml)}
+        ${sec('Diagnostic des freins à l\'emploi','🚧',freinsHtml)}
         ${sec('Métiers cibles','💼',metiersHtml)}
         ${hasPlans?sec('Plans A / B / C','🗺️',plansHtml):''}
         ${sec('Plan d\'action — Employeurs','📋',planHtml)}
