@@ -648,8 +648,11 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 
 <!-- ══ DIAGNOSTIC EMBARQUÉ (Mobilité / Freins) ══ -->
 <div class="scr" id="scr-diag" style="padding:0;max-width:none;">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:var(--card,#0a0e27);border-bottom:1px solid rgba(255,255,255,.12);position:sticky;top:0;z-index:5;">
-    <div id="diag-title" style="font-weight:800;font-size:1rem;">Diagnostic</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:var(--card,#0a0e27);border-bottom:1px solid rgba(255,255,255,.12);position:sticky;top:var(--th);z-index:5;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="goHome()" title="Tableau de bord" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px;font-size:.85rem;flex-shrink:0;">🏠 Mon parcours</button>
+      <div id="diag-title" style="font-weight:800;font-size:1rem;">Diagnostic</div>
+    </div>
     <button class="btn btn-p" id="diag-continue-btn" disabled onclick="diagContinue()" style="white-space:nowrap;">Terminez le diagnostic…</button>
   </div>
   <iframe id="diag-frame" title="Diagnostic" style="display:block;width:100%;height:calc(100vh - 58px);border:0;background:#fff;"></iframe>
@@ -3269,10 +3272,15 @@ function openActionWindow(){
 function goHome(){
   const inSession=sessionStorage.getItem('stagiaire_auth')==='1';
   const inFmt=typeof _fmtPin!=='undefined'&&_fmtPin;
-  if(inSession||inFmt){
-    if(!confirm('Retourner à l\'accueil ? Votre progression est sauvegardée.'))return;
+  if(inSession){
+    // Stagiaire connecté → retour au tableau de bord sans déconnexion
+    goStagiaireDashboard();
+    return;
   }
-  sessionStorage.clear();
+  if(inFmt){
+    go('scr-formateur');setTitle('Formateur');setpg(0);setStep('');setCounter('');
+    return;
+  }
   go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');setCounter('');
 }
 
