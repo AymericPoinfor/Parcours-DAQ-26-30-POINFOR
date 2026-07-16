@@ -4925,7 +4925,7 @@ async function renderFormateurDashboard(){
           prenom:d.prenom||d.profil?.prenom,
           nom:d.nom||d.profil?.nom,
           savedAt:d._meta?.updated_at||new Date().toISOString(),
-          snap:{profil:d.profil,qimi:d.qimi,riasec:d.riasec,valeurs:d.valeurs,competences:d.competences,cognitif:d.cognitif,metiers:d.metiers,employeurs:d.employeurs}
+          snap:{profil:d.profil,qimi:d.qimi,riasec:d.riasec,valeurs:d.valeurs,competences:d.competences,cognitif:d.cognitif,mobilite:d.mobilite,freins:d.freins,metiers:d.metiers,employeurs:d.employeurs}
         }));
         source='server';
         localStorage.setItem('profils_liste',JSON.stringify(liste));
