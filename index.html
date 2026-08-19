@@ -1936,6 +1936,7 @@ function renderQQ(){
 
 function qimiSel(v){
   qimiAns[qimiCur]=v;
+  saveTestDraft('qimi',{ans:qimiAns.slice(),cur:qimiCur});
   document.querySelectorAll('.ans-btn').forEach((b,i)=>{
     const c=QCOLORS[i];
     b.classList.toggle('sel',i+1===v);
@@ -1978,6 +1979,7 @@ function showQimiRes(){
   sorted.slice(0,5).forEach(k=>{const c=QCAT[k];const d=document.createElement('div');d.className='desc-item';d.innerHTML=`<strong>${c.emoji} ${c.name}</strong> — ${c.desc}`;descs.appendChild(d);});
   // Save
   localStorage.setItem('parcours_qimi',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
+  clearTestDraft('qimi');
   saveToProfilsList();
   document.getElementById('qr-next-btn').textContent=labelAfter('qimi');
   go('scr-qimi-res');setpg(50);setStep('QIMI ✓');setTitle('Résultats QIMI');
@@ -2046,6 +2048,7 @@ function renderVQ(){
 
 function valeursSel(v){
   valeursAns[valeursCur]=v;
+  saveTestDraft('valeurs',{ans:valeursAns.slice(),cur:valeursCur});
   document.querySelectorAll('#vq-ans .ans-btn').forEach((b,i)=>{
     const c=QCOLORS[i];
     b.classList.toggle('sel',i+1===v);
@@ -2084,6 +2087,7 @@ function showValeursRes(){
   const descs=document.getElementById('vr-descs');descs.innerHTML='';
   sorted.slice(0,3).forEach(k=>{const c=VCAT[k];const d=document.createElement('div');d.className='desc-item';d.innerHTML=`<strong>${c.emoji} ${c.name}</strong> — ${c.desc}`;descs.appendChild(d);});
   localStorage.setItem('parcours_valeurs',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
+  clearTestDraft('valeurs');
   saveToProfilsList();
   document.getElementById('vr-next-btn').textContent=labelAfter('valeurs');
   go('scr-valeurs-res');setpg(93);setStep('Valeurs ✓');setTitle('Résultats Valeurs');
@@ -2127,6 +2131,7 @@ function renderSQ(){
 
 function skillsSel(v){
   skillsAns[skillsCur]=v;
+  saveTestDraft('competences',{ans:skillsAns.slice(),cur:skillsCur});
   document.querySelectorAll('#sq-ans .ans-btn').forEach((b,i)=>{
     const c=QCOLORS[i];
     b.classList.toggle('sel',i+1===v);
@@ -2165,6 +2170,7 @@ function showSkillsRes(){
   const descs=document.getElementById('sr-descs');descs.innerHTML='';
   sorted.slice(0,3).forEach(k=>{const c=SCAT[k];const d=document.createElement('div');d.className='desc-item';d.innerHTML=`<strong>${c.emoji} ${c.name}</strong> — ${c.desc}`;descs.appendChild(d);});
   localStorage.setItem('parcours_competences',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
+  clearTestDraft('competences');
   saveToProfilsList();
   document.getElementById('sr-next-btn').textContent=labelAfter('competences');
   go('scr-skills-res');setpg(96);setStep('Compétences ✓');setTitle('Résultats Compétences');
@@ -2249,6 +2255,7 @@ function cogRevealQuestion(){
 
 function cogSel(idx){
   cogAns[cogCur]=idx;
+  saveTestDraft('cognitif',{ans:cogAns.slice(),cur:cogCur,memo:cogMemoSeen.slice()});
   document.querySelectorAll('#cq-opts .cog-opt').forEach((b,i)=>b.classList.toggle('sel',i===idx));
   const done=cogAns.filter(a=>a!==null).length;
   setpg(96+Math.round((done/32)*3));
@@ -2271,6 +2278,7 @@ function showCogRes(){
   const scores=computeCogScores();
   const now=new Date();
   localStorage.setItem('parcours_cognitif',JSON.stringify({scores,date:now.toISOString()}));
+  clearTestDraft('cognitif');
   saveToProfilsList();
   const hidden=!!getHiddenTests().cognitif;
   document.getElementById('cog-res-hidden').style.display=hidden?'block':'none';
@@ -2350,6 +2358,7 @@ function ansR(val){
   rScores[q.l]+=val;
   rMax[q.l]+=(sec.type==='fmf'?2:1);
   rQIdx++;
+  saveTestDraft('riasec',{scores:{...rScores},max:{...rMax},sec:rSecIdx,q:rQIdx});
   if(rQIdx>=sec.questions.length){
     rSecIdx++;
     if(rSecIdx>=RSECTIONS.length)buildRRes();
@@ -2398,6 +2407,7 @@ function buildRRes(){
     prEl.appendChild(card);
   });
   localStorage.setItem('parcours_riasec',JSON.stringify({scores:rScores,norm,code:top3.join(''),top3,date:now.toISOString()}));
+  clearTestDraft('riasec');
   saveToProfilsList();
   document.getElementById('rr-next-btn').textContent=labelAfter('riasec');
   go('scr-rsec-res');setpg(90);setStep('RIASEC ✓');setTitle('Résultats RIASEC');
@@ -3760,10 +3770,16 @@ function renderStagiaireDashboard(){
   }else{
     listEl.innerHTML=visibleTests.map(t=>{
       const done=!!localStorage.getItem('parcours_'+t.key);
-      const statusBg=done?'rgba(62,207,142,.12)':'rgba(255,255,255,.04)';
-      const statusBorder=done?'1px solid rgba(62,207,142,.3)':'1px solid var(--card-border)';
-      const statusColor=done?'var(--ok)':'var(--muted)';
-      const statusLabel=done?'✅ Terminé':'⬜ À faire';
+      const draft=!done&&loadTestDraft(t.key);
+      const statusBg=done?'rgba(62,207,142,.12)':draft?'rgba(245,200,66,.08)':'rgba(255,255,255,.04)';
+      const statusBorder=done?'1px solid rgba(62,207,142,.3)':draft?'1px solid rgba(245,200,66,.3)':'1px solid var(--card-border)';
+      const statusColor=done?'var(--ok)':draft?'#f5c842':'var(--muted)';
+      const statusLabel=done?'✅ Terminé':draft?`⏩ En cours (${draft.cur!=null?draft.cur:draft.q||0} réponses)`:'⬜ À faire';
+      const actionBtn=done
+        ?`<button class="btn btn-s" style="flex-shrink:0;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--card-border);" onclick="startTestFromDashboard('${t.key}')">🔄</button>`
+        :draft
+        ?`<button class="btn btn-s" style="flex-shrink:0;background:rgba(245,200,66,.2);color:#f5c842;border:1px solid rgba(245,200,66,.4);" onclick="resumeTestFromDashboard('${t.key}')">⏩ Reprendre</button>`
+        :`<button class="btn btn-s" style="flex-shrink:0;" onclick="resumeTestFromDashboard('${t.key}')">▶ Démarrer</button>`;
       return`<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:12px;margin-bottom:10px;background:${statusBg};border:${statusBorder};transition:.2s;">
         <div style="font-size:2rem;flex-shrink:0;">${t.emoji}</div>
         <div style="flex:1;min-width:0;">
@@ -3771,7 +3787,7 @@ function renderStagiaireDashboard(){
           <div style="font-size:.75rem;color:${statusColor};font-weight:600;margin-top:2px;">${statusLabel}</div>
         </div>
         ${done?`<button class="btn btn-s" style="flex-shrink:0;" onclick="showTestResultModal('${t.key}')">👁 Résultats</button>`:''}
-        <button class="btn btn-s" style="flex-shrink:0;${done?'background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--card-border);':''}" onclick="startTestFromDashboard('${t.key}')">${done?'🔄':'▶ Démarrer'}</button>
+        ${actionBtn}
       </div>`;
     }).join('');
   }
@@ -3851,9 +3867,44 @@ function showTestResultModal(key){
   modal.style.display='flex';
 }
 
-function startTestFromDashboard(key){
+// ── Sauvegarde intermédiaire des tests (reprise en cours de test) ──
+function saveTestDraft(key,data){try{localStorage.setItem('draft_'+key,JSON.stringify(data));}catch(e){}}
+function loadTestDraft(key){try{return JSON.parse(localStorage.getItem('draft_'+key)||'null');}catch(e){return null;}}
+function clearTestDraft(key){localStorage.removeItem('draft_'+key);}
+
+function resumeTestFromDraft(key,draft){
   _dashboardMode=true;
-  _testResumeMode=false;
+  switch(key){
+    case 'qimi':
+      qimiAns=draft.ans;qimiCur=draft.cur||0;
+      go('scr-qimi-q');renderQQ();setpg(35);setStep('QIMI en cours');setTitle('Test QIMI');setCounter('');break;
+    case 'riasec':
+      rScores=draft.scores;rMax=draft.max;rSecIdx=draft.sec||0;rQIdx=draft.q||0;
+      go('scr-rsec-q');showRQ();setpg(60);setStep('RIASEC en cours');setTitle('Test RIASEC');setCounter('');break;
+    case 'valeurs':
+      valeursAns=draft.ans;valeursCur=draft.cur||0;
+      go('scr-valeurs-q');renderVQ();setpg(91);setStep('Valeurs en cours');setTitle('Test Valeurs');setCounter('');break;
+    case 'competences':
+      skillsAns=draft.ans;skillsCur=draft.cur||0;
+      go('scr-skills-q');renderSQ();setpg(94);setStep('Compétences en cours');setTitle('Test Compétences');setCounter('');break;
+    case 'cognitif':
+      cogAns=draft.ans;cogCur=draft.cur||0;cogMemoSeen=draft.memo||new Array(32).fill(false);
+      go('scr-cog-q');renderCQ();setpg(97);setStep('Cognitif en cours');setTitle('Profil cognitif');setCounter('');break;
+    default:{const t=TESTS_ORDER.find(x=>x.key===key);if(t)t.start();}
+  }
+}
+
+function resumeTestFromDashboard(key){
+  _dashboardMode=true;_testResumeMode=false;
+  const draft=loadTestDraft(key);
+  if(draft){resumeTestFromDraft(key,draft);return;}
+  const t=TESTS_ORDER.find(x=>x.key===key);
+  if(t)t.start();
+}
+
+function startTestFromDashboard(key){
+  _dashboardMode=true;_testResumeMode=false;
+  clearTestDraft(key);
   const t=TESTS_ORDER.find(x=>x.key===key);
   if(t)t.start();
 }
