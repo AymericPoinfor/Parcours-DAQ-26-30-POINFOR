@@ -1801,7 +1801,7 @@ function valForm(){
   if(!naiss){setErr('fd-naiss','Date de naissance requise');ok=false;}
   if(!ok){toast('Complétez les champs obligatoires','err');return;}
   const age=naiss?Math.floor((Date.now()-new Date(naiss))/(365.25*24*3600*1000)):null;
-  const profil={prenom,nom,email,tel:document.getElementById('inp-tel').value.trim(),naiss,age,cp:document.getElementById('inp-cp').value.trim(),sit:st.sit||'Non renseignée',niveau:st.niveau||'Non renseigné',obj:document.getElementById('inp-obj').value.trim(),photo:st.photo,site:localStorage.getItem('parcours_site')||'',date:new Date().toISOString()};
+  const profil={prenom,nom,email,tel:document.getElementById('inp-tel').value.trim(),naiss,age,cp:document.getElementById('inp-cp').value.trim(),sit:st.sit||'Non renseignée',niveau:st.niveau||'Non renseigné',obj:document.getElementById('inp-obj').value.trim(),photo:st.photo,site:localStorage.getItem('parcours_site')||'',date:new Date().toISOString(),profil_complete:true};
   try{
     localStorage.setItem('parcours_profil',JSON.stringify(profil));
   }catch(err){
@@ -3912,7 +3912,7 @@ function startTestFromDashboard(key){
 function proceedAfterAuth(){
   _dashboardMode=true;
   const saved=localStorage.getItem('parcours_profil');
-  if(saved){try{JSON.parse(saved);goStagiaireDashboard();}catch(e){go('scr-welcome');setpg(5);}}
+  if(saved){try{const p=JSON.parse(saved);if(p.profil_complete){goStagiaireDashboard();}else{go('scr-welcome');setpg(5);}}catch(e){go('scr-welcome');setpg(5);}}
   else{go('scr-welcome');setpg(5);}
 }
 
@@ -3983,7 +3983,7 @@ function applyLoginSession(email,code,d){
 function genCode(){return Math.random().toString(36).substr(2,6).toUpperCase();}
 
 const ALL_TESTS=TESTS_ORDER.map(x=>x.key);
-function defaultTests(){const o={};ALL_TESTS.forEach(k=>o[k]=true);o.cognitif=false;o.mobilite=false;o.freins=false;return o;}
+function defaultTests(){const o={};ALL_TESTS.forEach(k=>o[k]=true);return o;}
 
 function renderTestCheckboxes(){
   const el=document.getElementById('fmt-st-tests-checks');
