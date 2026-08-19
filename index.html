@@ -569,7 +569,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div class="chip"><div class="cn">7</div>Mes 3 métiers</div>
     <div class="chip"><div class="cn">8</div>Plan d'action</div>
   </div>
-  <button class="btn btn-p btn-lg" onclick="go('scr-form');setpg(12)">Créer mon profil →</button>
+  <button class="btn btn-p btn-lg" onclick="openProfileForm()">Créer mon profil →</button>
   <div style="margin-top:18px;">
     <button onclick="openAdminLogin()" style="background:none;border:none;color:rgba(232,234,246,0.18);font-size:.65rem;cursor:pointer;letter-spacing:.05em;padding:4px 8px;">Administration</button>
   </div>
@@ -1789,6 +1789,16 @@ function selNiv(c){document.querySelectorAll('.niv').forEach(n=>n.classList.remo
 function clearErrs(){document.querySelectorAll('.field.err').forEach(f=>{f.classList.remove('err');const m=f.querySelector('.emsg');if(m)m.remove();});}
 function setErr(id,msg){const f=document.getElementById(id);f.classList.add('err');const s=document.createElement('span');s.className='emsg';s.textContent=msg;f.appendChild(s);}
 
+function openProfileForm(){
+  // Pré-remplir depuis le profil invite (serveur) ou la session
+  const saved=localStorage.getItem('parcours_profil');
+  if(saved){try{const p=JSON.parse(saved);
+    if(p.prenom)document.getElementById('inp-prenom').value=p.prenom;
+    if(p.nom)document.getElementById('inp-nom').value=p.nom;
+    if(p.email)document.getElementById('inp-email').value=p.email;
+  }catch(e){}}
+  go('scr-form');setpg(12);
+}
 function valForm(){
   clearErrs();let ok=true;
   const prenom=document.getElementById('inp-prenom').value.trim();
