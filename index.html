@@ -1790,13 +1790,15 @@ function clearErrs(){document.querySelectorAll('.field.err').forEach(f=>{f.class
 function setErr(id,msg){const f=document.getElementById(id);f.classList.add('err');const s=document.createElement('span');s.className='emsg';s.textContent=msg;f.appendChild(s);}
 
 function openProfileForm(){
-  // Pré-remplir depuis le profil invite (serveur) ou la session
+  let prenom='',nom='',email='';
+  // Depuis le profil serveur (invite)
   const saved=localStorage.getItem('parcours_profil');
-  if(saved){try{const p=JSON.parse(saved);
-    if(p.prenom)document.getElementById('inp-prenom').value=p.prenom;
-    if(p.nom)document.getElementById('inp-nom').value=p.nom;
-    if(p.email)document.getElementById('inp-email').value=p.email;
-  }catch(e){}}
+  if(saved){try{const p=JSON.parse(saved);prenom=p.prenom||'';nom=p.nom||'';email=p.email||'';}catch(e){}}
+  // Fallback depuis la session (stagiaire_nom = "Prenom Nom")
+  if(!prenom||!nom){const sn=sessionStorage.getItem('stagiaire_nom')||'';const parts=sn.trim().split(' ');if(!prenom)prenom=parts[0]||'';if(!nom)nom=parts.slice(1).join(' ')||'';}
+  if(prenom)document.getElementById('inp-prenom').value=prenom;
+  if(nom)document.getElementById('inp-nom').value=nom;
+  if(email)document.getElementById('inp-email').value=email;
   go('scr-form');setpg(12);
 }
 function valForm(){
@@ -1809,7 +1811,7 @@ function valForm(){
   if(!nom){setErr('fd-nom','Nom requis');ok=false;}
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setErr('fd-email','Email invalide');ok=false;}
   if(!naiss){setErr('fd-naiss','Date de naissance requise');ok=false;}
-  if(!ok){toast('Complétez les champs obligatoires','err');return;}
+  if(!ok){toast('Complétez les champs obligatoires','err');const firstErr=document.querySelector('.field.err');if(firstErr)firstErr.scrollIntoView({behavior:'smooth',block:'center'});return;}
   const age=naiss?Math.floor((Date.now()-new Date(naiss))/(365.25*24*3600*1000)):null;
   const profil={prenom,nom,email,tel:document.getElementById('inp-tel').value.trim(),naiss,age,cp:document.getElementById('inp-cp').value.trim(),sit:st.sit||'Non renseignée',niveau:st.niveau||'Non renseigné',obj:document.getElementById('inp-obj').value.trim(),photo:st.photo,site:localStorage.getItem('parcours_site')||'',date:new Date().toISOString(),profil_complete:true};
   try{
