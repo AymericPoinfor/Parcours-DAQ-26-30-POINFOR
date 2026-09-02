@@ -3881,9 +3881,55 @@ function showTestResultModal(key){
 }
 
 // ── Sauvegarde intermédiaire des tests (reprise en cours de test) ──
-function saveTestDraft(key,data){try{localStorage.setItem('draft_'+key,JSON.stringify(data));}catch(e){}}
+let _draftSyncTimer=null;
+const DRAFT_KEYS=['qimi','riasec','valeurs','competences','cognitif'];
+function saveTestDraft(key,data){
+  try{localStorage.setItem('draft_'+key,JSON.stringify(data));}catch(e){}
+  // Namespace par stagiaire dans localStorage
+  const code=sessionStorage.getItem('stagiaire_code');
+  if(code)try{localStorage.setItem('s_'+code+'_draft_'+key,JSON.stringify(data));}catch(e){}
+  // Sync serveur debouncé (5s après la dernière réponse)
+  clearTimeout(_draftSyncTimer);
+  _draftSyncTimer=setTimeout(syncDraftsToServer,5000);
+}
 function loadTestDraft(key){try{return JSON.parse(localStorage.getItem('draft_'+key)||'null');}catch(e){return null;}}
-function clearTestDraft(key){localStorage.removeItem('draft_'+key);}
+function clearTestDraft(key){
+  localStorage.removeItem('draft_'+key);
+  const code=sessionStorage.getItem('stagiaire_code');
+  if(code)localStorage.removeItem('s_'+code+'_draft_'+key);
+  // Sync immédiate pour effacer le draft du serveur quand le test est terminé
+  clearTimeout(_draftSyncTimer);
+  syncDraftsToServer();
+}
+async function syncDraftsToServer(){
+  const profil=JSON.parse(localStorage.getItem('parcours_profil')||'null');
+  if(!profil?.email)return;
+  const drafts={};
+  DRAFT_KEYS.forEach(k=>{const d=loadTestDraft(k);if(d)drafts[k]=d;});
+  // Snap complet pour ne pas écraser les tests terminés
+  const snap={
+    profil,
+    qimi:JSON.parse(localStorage.getItem('parcours_qimi')||'null'),
+    riasec:JSON.parse(localStorage.getItem('parcours_riasec')||'null'),
+    valeurs:JSON.parse(localStorage.getItem('parcours_valeurs')||'null'),
+    competences:JSON.parse(localStorage.getItem('parcours_competences')||'null'),
+    cognitif:JSON.parse(localStorage.getItem('parcours_cognitif')||'null'),
+    mobilite:JSON.parse(localStorage.getItem('parcours_mobilite')||'null'),
+    freins:JSON.parse(localStorage.getItem('parcours_freins')||'null'),
+    metiers:JSON.parse(localStorage.getItem('parcours_metiers')||'null'),
+    employeurs:JSON.parse(localStorage.getItem('parcours_employeurs')||'null'),
+  };
+  const etape=snap.metiers?'metiers':snap.cognitif?'cognitif':snap.competences?'competences':snap.valeurs?'valeurs':snap.riasec?'riasec':snap.qimi?'qimi':'profil';
+  const code=sessionStorage.getItem('stagiaire_code')||localStorage.getItem('parcours_active_code')||'';
+  const formateurEmail=localStorage.getItem('parcours_formateur')||'';
+  try{await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    email:profil.email,prenom:profil.prenom,nom:profil.nom,
+    etape,formateur_email:formateurEmail,code,
+    tests_assigned:JSON.parse(localStorage.getItem('parcours_tests_assigned')||'null'),
+    tests_hidden:JSON.parse(localStorage.getItem('parcours_tests_hidden')||'null'),
+    drafts,...snap
+  })});}catch(e){}
+}
 
 function resumeTestFromDraft(key,draft){
   _dashboardMode=true;
@@ -3965,6 +4011,8 @@ async function stagiaireLogin(){
     sessionStorage.setItem('stagiaire_code',code);
     localStorage.setItem('parcours_active_code',code);
     if(localStorage.getItem('s_'+code+'_parcours_profil'))loadStagiaireData(code);
+    // Restaurer les drafts namespaced (hors-ligne, même appareil)
+    DRAFT_KEYS.forEach(k=>{const v=localStorage.getItem('s_'+code+'_draft_'+k);if(v)localStorage.setItem('draft_'+k,v);else localStorage.removeItem('draft_'+k);});
     proceedAfterAuth();
     return;
   }
@@ -3985,6 +4033,13 @@ function applyLoginSession(email,code,d){
     Object.entries(map).forEach(([k,lsKey])=>{ if(snap[k])localStorage.setItem(lsKey,JSON.stringify(snap[k])); else localStorage.removeItem(lsKey); });
     if(snap.tests_assigned)localStorage.setItem('parcours_tests_assigned',JSON.stringify(snap.tests_assigned));
     if(snap.tests_hidden)localStorage.setItem('parcours_tests_hidden',JSON.stringify(snap.tests_hidden));
+    // Restaurer les drafts (tests en cours) depuis le serveur
+    if(snap.drafts&&typeof snap.drafts==='object'){
+      DRAFT_KEYS.forEach(k=>{
+        if(snap.drafts[k])try{localStorage.setItem('draft_'+k,JSON.stringify(snap.drafts[k]));}catch(e){}
+        else localStorage.removeItem('draft_'+k);
+      });
+    }
     saveStagiaireNamespace();
   }else if(localStorage.getItem('s_'+code+'_parcours_profil')){
     loadStagiaireData(code);
