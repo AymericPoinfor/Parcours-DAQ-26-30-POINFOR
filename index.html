@@ -3676,6 +3676,7 @@ let _fmtPin='';
 let _fmtFmt=null;      // {email, prenom, nom, formation} du formateur connecté
 let _fmtType='';       // 'formateur' | 'referent'
 let _adminPin='';
+let _adminRefresh=null;
 function getFormateurPin(){return localStorage.getItem('formateur_pin')||FORMATEUR_PIN_DEFAULT;}
 function getAccessCode(){return localStorage.getItem('stagiaire_code')||ACCESS_CODE_DEFAULT;}
 function getStagiairesList(){return JSON.parse(localStorage.getItem('stagiaires_list')||'[]');}
@@ -4519,8 +4520,9 @@ async function checkAdminPin(){
     closeFmtModal();
     renderAdminPanel(formateurs);
     go('scr-admin');setStep('Administration');setTitle('Espace Administrateur');setpg(0);
-    // Charger automatiquement la vue globale
     loadAdminGlobalView(formateurs);
+    clearInterval(_adminRefresh);
+    _adminRefresh=setInterval(()=>{refreshAdminPanel();loadAdminGlobalView();},30000);
   }catch(e){errEl.textContent='Erreur réseau.';errEl.style.display='block';}
 }
 
@@ -4986,6 +4988,7 @@ async function changeAdminPin(){
 }
 
 function exitAdmin(){
+  clearInterval(_adminRefresh);_adminRefresh=null;
   _adminPin='';
   go('scr-home');setTitle('Parcours Pro');setpg(0);setStep('');
 }
