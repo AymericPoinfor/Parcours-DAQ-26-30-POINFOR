@@ -559,16 +559,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   <div class="wlc-badge">✓ Invitation validée</div>
   <div class="wlc-title">Bienvenue sur<br>votre parcours</div>
   <div class="wlc-sub">Cette plateforme va vous accompagner dans la découverte de vos atouts, de vos affinités professionnelles et des métiers qui vous correspondent.</div>
-  <div class="step-chips">
-    <div class="chip"><div class="cn">1</div>Mon profil</div>
-    <div class="chip"><div class="cn">2</div>Test QIMI</div>
-    <div class="chip"><div class="cn">3</div>Test RIASEC</div>
-    <div class="chip"><div class="cn">4</div>Valeurs pro</div>
-    <div class="chip"><div class="cn">5</div>Compétences</div>
-    <div class="chip"><div class="cn">6</div>Profil cognitif</div>
-    <div class="chip"><div class="cn">7</div>Mes 3 métiers</div>
-    <div class="chip"><div class="cn">8</div>Plan d'action</div>
-  </div>
+  <div class="step-chips" id="welcome-chips"></div>
   <button class="btn btn-p btn-lg" onclick="openProfileForm()">Créer mon profil →</button>
   <div style="margin-top:18px;">
     <button onclick="openAdminLogin()" style="background:none;border:none;color:rgba(232,234,246,0.18);font-size:.65rem;cursor:pointer;letter-spacing:.05em;padding:4px 8px;">Administration</button>
@@ -3989,8 +3980,17 @@ function startTestFromDashboard(key){
   if(t)t.start();
 }
 
+function renderWelcomeChips(){
+  const assigned=getAssignedTests();
+  const steps=[{n:'Mon profil'}];
+  TESTS_ORDER.forEach(t=>{if(assigned[t.key])steps.push({n:t.name});});
+  steps.push({n:'Mes 3 métiers'},{n:'Plan d\'action'});
+  const el=document.getElementById('welcome-chips');
+  if(el)el.innerHTML=steps.map((s,i)=>`<div class="chip"><div class="cn">${i+1}</div>${s.n}</div>`).join('');
+}
 function proceedAfterAuth(){
   _dashboardMode=true;
+  renderWelcomeChips();
   const saved=localStorage.getItem('parcours_profil');
   if(saved){try{const p=JSON.parse(saved);if(p.profil_complete){goStagiaireDashboard();}else{go('scr-welcome');setpg(5);}}catch(e){go('scr-welcome');setpg(5);}}
   else{go('scr-welcome');setpg(5);}
