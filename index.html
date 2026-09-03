@@ -3341,8 +3341,29 @@ function saveToProfilsList(){
   localStorage.setItem('profils_liste',JSON.stringify(liste));
   saveStagiaireNamespace();
   syncToServer(snap);
+  notifyCompletionIfDone(snap);
 }
 
+async function notifyCompletionIfDone(snap){
+  // Vérifier si tous les tests assignés sont terminés
+  const assigned=getAssignedTests();
+  const allDone=TESTS_ORDER.every(t=>!assigned[t.key]||!!snap[t.key]||!!localStorage.getItem('parcours_'+t.key));
+  if(!allDone)return;
+  // Ne notifier qu'une seule fois
+  const flagKey='s_'+(sessionStorage.getItem('stagiaire_code')||'')+'_completion_notified';
+  if(localStorage.getItem(flagKey))return;
+  localStorage.setItem(flagKey,'1');
+  const profil=snap.profil||JSON.parse(localStorage.getItem('parcours_profil')||'null');
+  if(!profil?.email)return;
+  const formateurEmail=localStorage.getItem('parcours_formateur')||profil.formateur_email||'';
+  if(!formateurEmail)return;
+  try{await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    action:'notify_completion',
+    email:profil.email,prenom:profil.prenom,nom:profil.nom,
+    formateur_email:formateurEmail,
+    url:window.location.origin+window.location.pathname
+  })});}catch(e){}
+}
 async function syncToServer(snap){
   try{
     const etape=snap.metiers?'metiers':snap.cognitif?'cognitif':snap.competences?'competences':snap.valeurs?'valeurs':snap.riasec?'riasec':snap.qimi?'qimi':'profil';
@@ -4628,6 +4649,7 @@ function renderAdminPanel(formateurs){
               <div style="font-size:.72rem;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;">
                 <span style="color:var(--gold);font-family:monospace;">🔑 ${f.pin}</span>
                 <span style="color:${f.referent_pin?'#6aacff':'rgba(255,255,255,.25)'};font-family:monospace;">👁 ${f.referent_pin||'—'}</span>
+                <span style="color:${f.referent_email?'#4fe08a':'rgba(255,255,255,.25)'};">📧 ${f.referent_email||'—'}</span>
               </div>
               <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${f.nb_stagiaires} stagiaire${f.nb_stagiaires!=1?'s':''} · Depuis le ${new Date(f.created_at).toLocaleDateString('fr-FR')}</div>
             </div>
@@ -4636,7 +4658,8 @@ function renderAdminPanel(formateurs){
               ${f.actif==1?`
                 <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="editSite('${f.email}','${(f.site||'').replace(/'/g,"\\'")}')">📍 Site</button>
                 <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="editFormation('${f.email}','${(f.formation||'').replace(/'/g,"\\'")}')">✏️ Formation</button>
-                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="setReferentPin('${f.email}','${f.referent_pin||''}')">👁 Référent</button>
+                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="setReferentPin('${f.email}','${f.referent_pin||''}')">👁 Référent PIN</button>
+                <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;" onclick="setReferentEmail('${f.email}','${(f.referent_email||'').replace(/'/g,"\\'")}')">📧 Email référent</button>
                 <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f5c842;border-color:rgba(245,200,66,.4);" onclick="confirmChangeFormateurPin('${f.email}','${f.prenom} ${f.nom}')">🔑 Modifier le code</button>
                 <button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#f77a7a;border-color:rgba(247,122,122,.4);" onclick="confirmDeleteFormateur('${f.email}','${f.prenom} ${f.nom}')">🗑 Supprimer</button>
               `:`<button class="btn btn-s" style="font-size:.72rem;padding:5px 10px;color:#4fe08a;border-color:rgba(79,207,142,.4);" onclick="reactivateFormateur('${f.email}')">Réactiver</button>`}
@@ -4670,6 +4693,19 @@ async function editFormation(email, current){
       body:JSON.stringify({action:'set_formation',email,formation:n.trim()})});
     const d=await r.json();
     if(d.ok){toast('Formation mise à jour','ok');await refreshAdminPanel();}
+    else toast('Erreur','err');
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+async function setReferentEmail(email, current){
+  const n=prompt('Email du référent de formation (laisser vide pour supprimer) :', current);
+  if(n===null)return;
+  try{
+    const r=await fetch(API_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
+      body:JSON.stringify({action:'set_referent_email',email,referent_email:n.trim()})});
+    const d=await r.json();
+    if(d.ok){toast('Email référent mis à jour','ok');await refreshAdminPanel();}
     else toast('Erreur','err');
   }catch(e){toast('Erreur réseau','err');}
 }
