@@ -1441,7 +1441,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 
   <!-- Stats globales -->
   <div class="card" style="margin-bottom:12px;">
-    <div id="admin-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;text-align:center;"></div>
+    <div id="admin-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;text-align:center;max-width:900px;margin:0 auto;"></div>
   </div>
 
   <!-- Créer un formateur -->
@@ -4612,9 +4612,9 @@ function renderAdminStats(formateurs,allStagiaires){
   const nbMetiers=allStagiaires.filter(s=>s.etape==='metiers').length;
   const nbPlan=allStagiaires.filter(s=>s.employeurs?.list?.length>0).length;
   const nbFormations=[...new Set(formateurs.filter(f=>f.formation).map(f=>f.formation))].length;
-  const stat=(n,l,c='var(--accent)')=>`<div style="padding:10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--card-border);">
-    <div style="font-size:1.6rem;font-weight:900;color:${c};">${n}</div>
-    <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">${l}</div>
+  const stat=(n,l,c='var(--accent)')=>`<div style="padding:20px 16px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid var(--card-border);">
+    <div style="font-size:2.4rem;font-weight:900;color:${c};line-height:1;">${n}</div>
+    <div style="font-size:.78rem;color:var(--muted);margin-top:6px;letter-spacing:.03em;">${l}</div>
   </div>`;
   statsEl.innerHTML=
     stat(nbFormations,'Formations','#f5c842')+
