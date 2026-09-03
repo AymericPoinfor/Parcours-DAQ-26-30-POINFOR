@@ -4159,6 +4159,7 @@ function renderCodesList(){
       (s.email?`<div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.email}</div>`:`<div style="font-size:.7rem;color:var(--muted);font-style:italic;">Pas d'email</div>`)+
       `</div>`+
       `<button class="btn btn-s" style="padding:4px 8px;font-size:.85rem;flex-shrink:0;letter-spacing:.1em;" title="Modifier les tests affectés" onclick="editStagiaireTests('${s.code}')">${testsBadge}</button>`+
+      `<button class="btn btn-s" style="padding:4px 8px;font-size:.75rem;flex-shrink:0;" title="Modifier le profil" onclick="editProfilStagiaire('${s.email}','${(s.prenom||'').replace(/'/g,"\\'")}','${(s.nom||'').replace(/'/g,"\\'")}','${(s.telephone||'').replace(/'/g,"\\'")}','${(s.situation||'').replace(/'/g,"\\'")}')">✏️</button>`+
       `<div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--gold);letter-spacing:.1em;flex-shrink:0;">${s.code}</div>`+
       `<div style="font-size:.72rem;color:${hasDone?'var(--ok)':'var(--muted)'};flex-shrink:0;">${hasDone?'✓ En cours':'–'}</div>`+
       `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;flex-shrink:0;"${emailAttr} onclick="sendInvitation('${s.prenom}','${s.nom}','${s.code}','${s.email||''}','${s.site||''}')">📧</button>`+
@@ -4898,6 +4899,7 @@ function renderAdminGlobal(data){
           <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
         </div>
       </div>
+      <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;flex-shrink:0;" title="Modifier le profil" onclick="event.stopPropagation();editProfilStagiaire('${emailStag}','${(snap?.profil?.prenom||nomStag.split(' ')[0]||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}','${(snap?.profil?.nom||nomStag.split(' ').slice(1).join(' ')||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}','${(snap?.profil?.telephone||'').replace(/'/g,"\\'")}','${(snap?.profil?.situation||'').replace(/'/g,"\\'")}')">✏️ Profil</button>
       <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;color:#f77a7a;flex-shrink:0;" title="Supprimer ce profil" onclick="event.stopPropagation();confirmDeleteStagiaire('${nomStag}','${emailStag}')">🗑</button>
     </div>`;
   };
@@ -5265,6 +5267,7 @@ async function renderFormateurDashboard(){
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;" onclick="event.stopPropagation()">
           <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="showStagiaireDetail(${idx})">👁 Détail</button>
+          <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="editProfilStagiaire('${p.email}','${(p.prenom||'').replace(/'/g,"\\'")}','${(p.nom||'').replace(/'/g,"\\'")}','${(p.telephone||'').replace(/'/g,"\\'")}','${(p.situation||'').replace(/'/g,"\\'")}')">✏️ Profil</button>
           ${(hasQ||hasR)?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genBilanPDFFromSnap(${idx})">📄 Bilan</button>`:''}
           ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">📋 Plan</button>`:''}
           <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="confirmDeleteStagiaire('${p.prenom} ${p.nom}','${p.email}')">🗑 Supprimer</button>
@@ -5276,6 +5279,53 @@ async function renderFormateurDashboard(){
 }
 
 let _deletePending=null;
+
+async function editProfilStagiaire(email,prenom,nom,telephone,situation){
+  let modal=document.getElementById('edit-profil-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='edit-profil-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML=`<div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:28px;max-width:420px;width:94vw;">
+      <div style="font-size:1.05rem;font-weight:800;margin-bottom:18px;">✏️ Modifier le profil</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <input id="ep-prenom" class="ef-inp" placeholder="Prénom *">
+        <input id="ep-nom" class="ef-inp" placeholder="Nom *">
+        <input id="ep-tel" class="ef-inp" placeholder="Téléphone">
+        <input id="ep-situation" class="ef-inp" placeholder="Situation (ex: demandeur d'emploi)">
+      </div>
+      <div id="ep-err" style="color:#f77a7a;font-size:.8rem;margin-top:8px;display:none;"></div>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+        <button class="btn btn-s" onclick="document.getElementById('edit-profil-modal').remove()">Annuler</button>
+        <button class="btn btn-p" id="ep-save">Enregistrer</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('ep-prenom').value=prenom||'';
+  document.getElementById('ep-nom').value=nom||'';
+  document.getElementById('ep-tel').value=telephone||'';
+  document.getElementById('ep-situation').value=situation||'';
+  document.getElementById('ep-err').style.display='none';
+  const saveBtn=document.getElementById('ep-save');
+  saveBtn.onclick=async()=>{
+    const p=document.getElementById('ep-prenom').value.trim();
+    const n=document.getElementById('ep-nom').value.trim();
+    const t=document.getElementById('ep-tel').value.trim();
+    const s=document.getElementById('ep-situation').value.trim();
+    if(!p||!n){document.getElementById('ep-err').textContent='Prénom et nom obligatoires.';document.getElementById('ep-err').style.display='block';return;}
+    saveBtn.disabled=true;saveBtn.textContent='Enregistrement…';
+    const headers={'Content-Type':'application/json'};
+    if(_adminPin)headers['X-Admin-Pin']=_adminPin;
+    else if(_formateurPin)headers['X-Formateur-Pin']=_formateurPin;
+    try{
+      const r=await fetch(API_URL,{method:'POST',headers,body:JSON.stringify({action:'update_stagiaire_profil',email,prenom:p,nom:n,telephone:t,situation:s})});
+      const d=await r.json();
+      if(d.ok){toast('Profil mis à jour','ok');modal.remove();if(typeof refreshAdminPanel==='function')refreshAdminPanel();if(typeof renderFormateurDashboard==='function')renderFormateurDashboard();}
+      else{document.getElementById('ep-err').textContent=d.error||'Erreur';document.getElementById('ep-err').style.display='block';saveBtn.disabled=false;saveBtn.textContent='Enregistrer';}
+    }catch(e){document.getElementById('ep-err').textContent='Erreur réseau';document.getElementById('ep-err').style.display='block';saveBtn.disabled=false;saveBtn.textContent='Enregistrer';}
+  };
+}
 
 function confirmDeleteStagiaire(nom,email){
   let modal=document.getElementById('delete-confirm-modal');
