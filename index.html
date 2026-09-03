@@ -5291,6 +5291,7 @@ async function editProfilStagiaire(email,prenom,nom,telephone,situation){
       <div style="display:flex;flex-direction:column;gap:10px;">
         <input id="ep-prenom" class="ef-inp" placeholder="Prénom *">
         <input id="ep-nom" class="ef-inp" placeholder="Nom *">
+        <input id="ep-email" class="ef-inp" type="email" placeholder="Email *">
         <input id="ep-tel" class="ef-inp" placeholder="Téléphone">
         <input id="ep-situation" class="ef-inp" placeholder="Situation (ex: demandeur d'emploi)">
       </div>
@@ -5304,6 +5305,7 @@ async function editProfilStagiaire(email,prenom,nom,telephone,situation){
   }
   document.getElementById('ep-prenom').value=prenom||'';
   document.getElementById('ep-nom').value=nom||'';
+  document.getElementById('ep-email').value=email||'';
   document.getElementById('ep-tel').value=telephone||'';
   document.getElementById('ep-situation').value=situation||'';
   document.getElementById('ep-err').style.display='none';
@@ -5311,15 +5313,16 @@ async function editProfilStagiaire(email,prenom,nom,telephone,situation){
   saveBtn.onclick=async()=>{
     const p=document.getElementById('ep-prenom').value.trim();
     const n=document.getElementById('ep-nom').value.trim();
+    const em=document.getElementById('ep-email').value.trim();
     const t=document.getElementById('ep-tel').value.trim();
     const s=document.getElementById('ep-situation').value.trim();
-    if(!p||!n){document.getElementById('ep-err').textContent='Prénom et nom obligatoires.';document.getElementById('ep-err').style.display='block';return;}
+    if(!p||!n||!em){document.getElementById('ep-err').textContent='Prénom, nom et email obligatoires.';document.getElementById('ep-err').style.display='block';return;}
     saveBtn.disabled=true;saveBtn.textContent='Enregistrement…';
     const headers={'Content-Type':'application/json'};
     if(_adminPin)headers['X-Admin-Pin']=_adminPin;
     else if(_formateurPin)headers['X-Formateur-Pin']=_formateurPin;
     try{
-      const r=await fetch(API_URL,{method:'POST',headers,body:JSON.stringify({action:'update_stagiaire_profil',email,prenom:p,nom:n,telephone:t,situation:s})});
+      const r=await fetch(API_URL,{method:'POST',headers,body:JSON.stringify({action:'update_stagiaire_profil',email,new_email:em,prenom:p,nom:n,telephone:t,situation:s})});
       const d=await r.json();
       if(d.ok){toast('Profil mis à jour','ok');modal.remove();if(typeof refreshAdminPanel==='function')refreshAdminPanel();if(typeof renderFormateurDashboard==='function')renderFormateurDashboard();}
       else{document.getElementById('ep-err').textContent=d.error||'Erreur';document.getElementById('ep-err').style.display='block';saveBtn.disabled=false;saveBtn.textContent='Enregistrer';}
