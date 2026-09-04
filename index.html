@@ -4075,7 +4075,7 @@ function applyLoginSession(email,code,d){
 function genCode(){return Math.random().toString(36).substr(2,6).toUpperCase();}
 
 const ALL_TESTS=TESTS_ORDER.map(x=>x.key);
-function defaultTests(){const o={};ALL_TESTS.forEach(k=>o[k]=true);return o;}
+function defaultTests(){const o={};ALL_TESTS.forEach(k=>o[k]=false);return o;}
 
 function renderTestCheckboxes(){
   const el=document.getElementById('fmt-st-tests-checks');
