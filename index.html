@@ -3470,7 +3470,7 @@ function bilanRankedHtml(data,CAT,KEYS,intro,max){
   const sorted=KEYS.slice().sort((a,b)=>(data.scores[b]||0)-(data.scores[a]||0));
   const rows=sorted.map((k,i)=>{
     const c=CAT[k],pct=Math.round(((data.scores[k]||0)/max)*100);
-    const col=pct>=66?'#2e7d32':pct>=40?'#e65100':'#999';
+    const col=pct>=80?'#2e7d32':pct>=60?'#1565c0':pct>=40?'#e65100':'#c62828';
     const rank=i<3?['①','②','③'][i]+' ':'';
     return`<div style="margin-bottom:7px;">`+
       `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">`+
@@ -3553,7 +3553,7 @@ function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid){
     mEl.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px;">`+
       jobs.map((j,i)=>{
         const pct=scoreJob(j,qd,rd);
-        const col=pct>=70?'#2e7d32':pct>=45?'#1e4dd8':'#888';
+        const col=pct>=80?'#2e7d32':pct>=60?'#1565c0':pct>=40?'#e65100':'#c62828';
         return`<div style="border:1px solid #dde5ff;border-radius:5px;padding:5px 9px;font-size:8pt;">`+
           `<span style="font-size:10pt;">${j.e}</span> <b>${jobShortName(j.n)}</b>`+
           `<span style="margin-left:6px;font-weight:800;color:${col};">${pct}%</span></div>`;
