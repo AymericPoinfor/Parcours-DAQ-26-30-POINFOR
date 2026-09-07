@@ -4151,25 +4151,33 @@ function renderCodesList(){
   const empty=document.getElementById('fmt-codes-empty');
   el.innerHTML='';
   empty.style.display=list.length?'none':'block';
-  list.forEach(s=>{
-    const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;';
-    const hasDone=!!localStorage.getItem('s_'+s.code+'_parcours_profil');
-    const emailAttr=s.email?` title="${s.email}"`:'';
-    const t=s.tests||defaultTests();
-    const h=s.hiddenResults||{};
-    const testsBadge=TESTS_ORDER.map(x=>`<span style="opacity:${t[x.key]?'1':'.25'};" title="${x.name}${t[x.key]?' activé':' désactivé'}${t[x.key]&&h[x.key]?' · masqué au stagiaire':''}">${x.emoji}${t[x.key]&&h[x.key]?'🙈':''}</span>`).join('');
-    row.innerHTML=
-      `<div style="flex:1;min-width:0;"><div style="font-size:.9rem;font-weight:700;">${s.prenom} ${s.nom}</div>`+
-      (s.email?`<div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.email}</div>`:`<div style="font-size:.7rem;color:var(--muted);font-style:italic;">Pas d'email</div>`)+
-      `</div>`+
-      `<button class="btn btn-s" style="padding:4px 8px;font-size:.85rem;flex-shrink:0;letter-spacing:.1em;" title="Modifier les tests affectés" onclick="editStagiaireTests('${s.code}')">${testsBadge}</button>`+
-      `<button class="btn btn-s" style="padding:4px 8px;font-size:.75rem;flex-shrink:0;" title="Modifier le profil" onclick="editProfilStagiaire('${s.email}','${(s.prenom||'').replace(/'/g,"\\'")}','${(s.nom||'').replace(/'/g,"\\'")}','${(s.telephone||'').replace(/'/g,"\\'")}','${(s.situation||'').replace(/'/g,"\\'")}')">✏️</button>`+
-      `<div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--gold);letter-spacing:.1em;flex-shrink:0;">${s.code}</div>`+
-      `<div style="font-size:.72rem;color:${hasDone?'var(--ok)':'var(--muted)'};flex-shrink:0;">${hasDone?'✓ En cours':'–'}</div>`+
-      `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;flex-shrink:0;"${emailAttr} onclick="sendInvitation('${s.prenom}','${s.nom}','${s.code}','${s.email||''}','${s.site||''}')">📧</button>`+
-      `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;color:#f77a7a;flex-shrink:0;" onclick="removeStagiaireCode('${s.code}')">✕</button>`;
-    el.appendChild(row);
+  const groups={};
+  list.forEach(s=>{const site=s.site||'Sans site';if(!groups[site])groups[site]=[];groups[site].push(s);});
+  Object.entries(groups).forEach(([site,stagiaires],gi)=>{
+    const header=document.createElement('div');
+    header.style.cssText=`font-size:.75rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;padding:${gi>0?'14px':'4px'} 4px 6px;${gi>0?'border-top:1px solid var(--card-border);margin-top:4px;':''}`;
+    header.textContent='📍 '+site+' — '+stagiaires.length+' stagiaire'+(stagiaires.length>1?'s':'');
+    el.appendChild(header);
+    stagiaires.forEach(s=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;';
+      const hasDone=!!localStorage.getItem('s_'+s.code+'_parcours_profil');
+      const emailAttr=s.email?` title="${s.email}"`:'';
+      const t=s.tests||defaultTests();
+      const h=s.hiddenResults||{};
+      const testsBadge=TESTS_ORDER.map(x=>`<span style="opacity:${t[x.key]?'1':'.25'};" title="${x.name}${t[x.key]?' activé':' désactivé'}${t[x.key]&&h[x.key]?' · masqué au stagiaire':''}">${x.emoji}${t[x.key]&&h[x.key]?'🙈':''}</span>`).join('');
+      row.innerHTML=
+        `<div style="flex:1;min-width:0;"><div style="font-size:.9rem;font-weight:700;">${s.prenom} ${s.nom}</div>`+
+        (s.email?`<div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.email}</div>`:`<div style="font-size:.7rem;color:var(--muted);font-style:italic;">Pas d'email</div>`)+
+        `</div>`+
+        `<button class="btn btn-s" style="padding:4px 8px;font-size:.85rem;flex-shrink:0;letter-spacing:.1em;" title="Modifier les tests affectés" onclick="editStagiaireTests('${s.code}')">${testsBadge}</button>`+
+        `<button class="btn btn-s" style="padding:4px 8px;font-size:.75rem;flex-shrink:0;" title="Modifier le profil" onclick="editProfilStagiaire('${s.email}','${(s.prenom||'').replace(/'/g,"\\'")}','${(s.nom||'').replace(/'/g,"\\'")}','${(s.telephone||'').replace(/'/g,"\\'")}','${(s.situation||'').replace(/'/g,"\\'")}')">✏️</button>`+
+        `<div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--gold);letter-spacing:.1em;flex-shrink:0;">${s.code}</div>`+
+        `<div style="font-size:.72rem;color:${hasDone?'var(--ok)':'var(--muted)'};flex-shrink:0;">${hasDone?'✓ En cours':'–'}</div>`+
+        `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;flex-shrink:0;"${emailAttr} onclick="sendInvitation('${s.prenom}','${s.nom}','${s.code}','${s.email||''}','${s.site||''}')">📧</button>`+
+        `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;color:#f77a7a;flex-shrink:0;" onclick="removeStagiaireCode('${s.code}')">✕</button>`;
+      el.appendChild(row);
+    });
   });
 }
 
