@@ -5335,7 +5335,7 @@ async function editProfilStagiaire(email,prenom,nom,telephone,situation){
     saveBtn.disabled=true;saveBtn.textContent='Enregistrement…';
     const headers={'Content-Type':'application/json'};
     if(_adminPin)headers['X-Admin-Pin']=_adminPin;
-    else if(_formateurPin)headers['X-Formateur-Pin']=_formateurPin;
+    else if(_fmtPin)headers['X-Pin']=_fmtPin;
     try{
       const r=await fetch(API_URL,{method:'POST',headers,body:JSON.stringify({action:'update_stagiaire_profil',email,new_email:em,prenom:p,nom:n,telephone:t,situation:s})});
       const d=await r.json();
