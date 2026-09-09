@@ -4914,7 +4914,7 @@ function renderAdminGlobal(data){
           <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
         </div>
       </div>
-      <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;flex-shrink:0;" title="Modifier le profil" onclick="event.stopPropagation();editProfilStagiaire('${emailStag}','${(snap?.profil?.prenom||nomStag.split(' ')[0]||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}','${(snap?.profil?.nom||nomStag.split(' ').slice(1).join(' ')||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}','${(snap?.profil?.telephone||'').replace(/'/g,"\\'")}','${(snap?.profil?.situation||'').replace(/'/g,"\\'")}')">✏️ Profil</button>
+      <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;flex-shrink:0;" title="Modifier le profil" onclick="event.stopPropagation();editProfilStagiaire('${emailStag}','${(p.prenom||nomStag.split(' ')[0]||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}','${(p.nom||nomStag.split(' ').slice(1).join(' ')||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}','${(p.telephone||'').replace(/'/g,"\\'")}','${(p.situation||'').replace(/'/g,"\\'")}')">✏️ Profil</button>
       <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;color:#f77a7a;flex-shrink:0;" title="Supprimer ce profil" onclick="event.stopPropagation();confirmDeleteStagiaire('${nomStag}','${emailStag}')">🗑</button>
     </div>`;
   };
