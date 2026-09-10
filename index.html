@@ -4163,7 +4163,7 @@ function renderCodesList(){
     stagiaires.forEach(s=>{
       const row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;';
-      const hasDone=!!localStorage.getItem('s_'+s.code+'_parcours_profil');
+      const hasDone=!!(s.qimi||s.riasec||s.valeurs||s.competences||s.cognitif||s.metiers);
       const emailAttr=s.email?` title="${s.email}"`:'';
       const t=s.tests||defaultTests();
       const h=s.hiddenResults||{};
