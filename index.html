@@ -1061,7 +1061,7 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
     <button class="btn btn-s btn-full" onclick="genBilanPDF()">📄 Télécharger mon bilan PDF</button>
   </div>
-  <div style="margin-bottom:12px;">
+  <div id="notify-btn-wrap" style="margin-bottom:12px;display:none;">
     <button class="btn btn-p btn-full" onclick="notifyCompletion()">📧 Envoyer mes résultats au formateur</button>
   </div>
 
@@ -1991,7 +1991,7 @@ function showQimiRes(){
   const descs=document.getElementById('qr-descs');descs.innerHTML='';
   sorted.slice(0,5).forEach(k=>{const c=QCAT[k];const d=document.createElement('div');d.className='desc-item';d.innerHTML=`<strong>${c.emoji} ${c.name}</strong> — ${c.desc}`;descs.appendChild(d);});
   // Save
-  localStorage.setItem('parcours_qimi',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
+  safeLSSet('parcours_qimi',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
   clearTestDraft('qimi');
   saveToProfilsList();
   document.getElementById('qr-next-btn').textContent=labelAfter('qimi');
@@ -2099,7 +2099,7 @@ function showValeursRes(){
   sorted.forEach(k=>{const c=VCAT[k];const pct=(scores[k]/25)*100;const r=document.createElement('div');r.className='bar-row';r.innerHTML=`<div class="bar-lbl"><span>${c.emoji}</span><span style="color:${c.color}">${c.name}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c.color}"></div></div><div class="bar-val">${scores[k]}</div>`;bars.appendChild(r);});
   const descs=document.getElementById('vr-descs');descs.innerHTML='';
   sorted.slice(0,3).forEach(k=>{const c=VCAT[k];const d=document.createElement('div');d.className='desc-item';d.innerHTML=`<strong>${c.emoji} ${c.name}</strong> — ${c.desc}`;descs.appendChild(d);});
-  localStorage.setItem('parcours_valeurs',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
+  safeLSSet('parcours_valeurs',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
   clearTestDraft('valeurs');
   saveToProfilsList();
   document.getElementById('vr-next-btn').textContent=labelAfter('valeurs');
@@ -2182,7 +2182,7 @@ function showSkillsRes(){
   sorted.forEach(k=>{const c=SCAT[k];const pct=(scores[k]/25)*100;const r=document.createElement('div');r.className='bar-row';r.innerHTML=`<div class="bar-lbl"><span>${c.emoji}</span><span style="color:${c.color}">${c.name}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c.color}"></div></div><div class="bar-val">${scores[k]}</div>`;bars.appendChild(r);});
   const descs=document.getElementById('sr-descs');descs.innerHTML='';
   sorted.slice(0,3).forEach(k=>{const c=SCAT[k];const d=document.createElement('div');d.className='desc-item';d.innerHTML=`<strong>${c.emoji} ${c.name}</strong> — ${c.desc}`;descs.appendChild(d);});
-  localStorage.setItem('parcours_competences',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
+  safeLSSet('parcours_competences',JSON.stringify({scores,top3:sorted.slice(0,3),date:now.toISOString()}));
   clearTestDraft('competences');
   saveToProfilsList();
   document.getElementById('sr-next-btn').textContent=labelAfter('competences');
@@ -2290,7 +2290,7 @@ function showCogRes(){
   setCounter('');
   const scores=computeCogScores();
   const now=new Date();
-  localStorage.setItem('parcours_cognitif',JSON.stringify({scores,date:now.toISOString()}));
+  safeLSSet('parcours_cognitif',JSON.stringify({scores,date:now.toISOString()}));
   clearTestDraft('cognitif');
   saveToProfilsList();
   const hidden=!!getHiddenTests().cognitif;
@@ -2419,7 +2419,7 @@ function buildRRes(){
       '<div class="pc-metiers"><strong>💡 Métiers possibles</strong>'+p.metiers+'</div>';
     prEl.appendChild(card);
   });
-  localStorage.setItem('parcours_riasec',JSON.stringify({scores:rScores,norm,code:top3.join(''),top3,date:now.toISOString()}));
+  safeLSSet('parcours_riasec',JSON.stringify({scores:rScores,norm,code:top3.join(''),top3,date:now.toISOString()}));
   clearTestDraft('riasec');
   saveToProfilsList();
   document.getElementById('rr-next-btn').textContent=labelAfter('riasec');
@@ -2742,7 +2742,7 @@ function filterJobs(type,btn){
 function valMetiers(){
   if(selJobs.size===0){toast('Sélectionnez au moins 1 métier','err');return;}
   const selected=allScored.filter(j=>selJobs.has(j.id)).sort((a,b)=>b.score-a.score);
-  localStorage.setItem('parcours_metiers',JSON.stringify({selected:selected,date:new Date().toISOString()}));
+  safeLSSet('parcours_metiers',JSON.stringify({selected:selected,date:new Date().toISOString()}));
   saveToProfilsList();
   showMetiersResult(selected);
 }
@@ -2886,6 +2886,7 @@ const STEPS_DEF=[
   {key:'cv',       ico:'📄', lbl:'CV envoyé'},
   {key:'lm',       ico:'✉️',  lbl:'LM envoyée'},
 ];
+function safeLSSet(key,val){try{localStorage.setItem(key,val);}catch(e){console.warn('localStorage plein ou indisponible :',key);}}
 let employers=[];
 let empEditId=null;
 let empMetierFilter='all';
@@ -2895,7 +2896,7 @@ function loadEmployeurs(){
   employers=d?JSON.parse(d).list||[]:[];
 }
 function saveEmployeurs(){
-  localStorage.setItem('parcours_employeurs',JSON.stringify({list:employers}));
+  safeLSSet('parcours_employeurs',JSON.stringify({list:employers}));
 }
 function genId(){return'emp_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);}
 
@@ -2949,6 +2950,10 @@ async function refreshTestsFromServer(){
 function buildAction(){
   renderPendingTestsBanner();
   loadEmployeurs();
+  // Afficher le bouton d'envoi seulement si au moins un test est complété
+  const _hasAnyResult=!!(localStorage.getItem('parcours_qimi')||localStorage.getItem('parcours_riasec')||localStorage.getItem('parcours_valeurs')||localStorage.getItem('parcours_competences'));
+  const _notifyWrap=document.getElementById('notify-btn-wrap');
+  if(_notifyWrap)_notifyWrap.style.display=_hasAnyResult?'block':'none';
   const md=JSON.parse(localStorage.getItem('parcours_metiers')||'null');
   const jobs=md&&md.selected?md.selected:[];
   // Metier filter chips
@@ -4529,7 +4534,7 @@ async function checkFormateurPin(){
     setTitle(isRef?'Compte rendu — '+(d.formateur.formation||'Formation'):'Tableau de bord formateur');
     setpg(0);
     clearInterval(_autoRefresh);
-    _autoRefresh=setInterval(()=>renderFormateurDashboard(),30000);
+    _autoRefresh=setInterval(()=>renderFormateurDashboard(),120000);
   }catch(e){
     errEl.textContent='Erreur réseau. Vérifiez votre connexion.';
     errEl.style.display='block';
@@ -4558,7 +4563,7 @@ async function autoFmtSetup(pin){
       renderFormateurDashboard();
       const isRef=_fmtType==='referent';
       go('scr-formateur');setStep(isRef?'Référent pédagogique':'Mode Formateur');setTitle('Tableau de bord');setpg(0);
-      clearInterval(_autoRefresh);_autoRefresh=setInterval(()=>renderFormateurDashboard(),30000);
+      clearInterval(_autoRefresh);_autoRefresh=setInterval(()=>renderFormateurDashboard(),120000);
     }
   }catch(e){toast('Erreur réseau','err');go('scr-home');}
 }
@@ -4598,7 +4603,7 @@ async function saveFmtProfile(){
     toast('Profil enregistré !','ok');
     renderFormateurDashboard();
     go('scr-formateur');setStep('Mode Formateur');setTitle('Tableau de bord');setpg(0);
-    clearInterval(_autoRefresh);_autoRefresh=setInterval(()=>renderFormateurDashboard(),30000);
+    clearInterval(_autoRefresh);_autoRefresh=setInterval(()=>renderFormateurDashboard(),120000);
   }catch(e){errEl.textContent='Erreur réseau. Réessayez.';errEl.style.display='block';}
 }
 
@@ -4636,7 +4641,7 @@ async function checkAdminPin(){
     go('scr-admin');setStep('Administration');setTitle('Espace Administrateur');setpg(0);
     loadAdminGlobalView(formateurs);
     clearInterval(_adminRefresh);
-    _adminRefresh=setInterval(()=>{refreshAdminPanel();loadAdminGlobalView();},30000);
+    _adminRefresh=setInterval(()=>{refreshAdminPanel();loadAdminGlobalView();},120000);
   }catch(e){errEl.textContent='Erreur réseau.';errEl.style.display='block';}
 }
 
@@ -5368,7 +5373,9 @@ async function editProfilStagiaire(email,prenom,nom,telephone,situation){
     const em=document.getElementById('ep-email').value.trim();
     const t=document.getElementById('ep-tel').value.trim();
     const s=document.getElementById('ep-situation').value.trim();
-    if(!p||!n||!em){document.getElementById('ep-err').textContent='Prénom, nom et email obligatoires.';document.getElementById('ep-err').style.display='block';return;}
+    const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if(!p||!n){document.getElementById('ep-err').textContent='Prénom et nom obligatoires.';document.getElementById('ep-err').style.display='block';return;}
+    if(!em||!emailRe.test(em)){document.getElementById('ep-err').textContent='Email invalide.';document.getElementById('ep-err').style.display='block';return;}
     saveBtn.disabled=true;saveBtn.textContent='Enregistrement…';
     const headers={'Content-Type':'application/json'};
     if(_adminPin)headers['X-Admin-Pin']=_adminPin;
