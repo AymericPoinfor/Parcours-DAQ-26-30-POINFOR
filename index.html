@@ -709,7 +709,6 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       <div class="bars" id="qr-bars"></div>
       <div class="descs" id="qr-descs"></div>
       <div class="r-actions">
-        <button class="btn btn-s" onclick="saveQimiPDF()">💾 Enregistrer PDF</button>
         <button class="btn btn-p btn-lg" id="qr-next-btn" onclick="goAfterQimi()">Démarrer le test RIASEC →</button>
       </div>
     </div>
@@ -758,7 +757,6 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
   </div>
   <div id="rr-profiles"></div>
   <div class="r-actions" style="margin-top:8px;">
-    <button class="btn btn-s" onclick="saveRiasecPDF()">💾 Enregistrer PDF</button>
     <button class="btn btn-g btn-lg" id="rr-next-btn" onclick="goAfterRiasec()">Test Valeurs professionnelles →</button>
   </div>
 </div>
@@ -991,8 +989,6 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <div id="mr-jobs"></div>
     <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
       <button class="btn btn-s" onclick="go('scr-metiers');setpg(99)">← Modifier ma sélection</button>
-      <button class="btn btn-p" onclick="saveMetiersPDF()">💾 Bilan PDF</button>
-      <button class="btn btn-s" onclick="genBilanPDF()">📄 Bilan complet PDF</button>
       <button class="btn btn-g btn-full" onclick="buildAction()">🎯 Mon plan d'action →</button>
     </div>
   </div>
@@ -1059,11 +1055,11 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <button class="btn btn-s" style="flex:1;min-width:140px;" onclick="toggleSearchPanel()">🔍 Rechercher en ligne</button>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-    <button class="btn btn-s" style="flex:1;" onclick="openActionWindow()">🔗 Ouvrir</button>
-    <button class="btn btn-s" style="flex:1;" onclick="saveActionPDF()">💾 PDF</button>
-    <button class="btn btn-s" style="flex:1;" onclick="exportExcel()">📊 Excel</button>
-    <button class="btn btn-s" style="flex:1;" onclick="genBilanPDF()">📄 Bilan complet</button>
     <button class="btn btn-s" style="flex:1;" onclick="go('scr-metiers-result');setpg(100);setStep('Parcours complet ✓');setTitle('Mes métiers');setCounter('')">← Retour</button>
+    <button class="btn btn-s" style="flex:1;" onclick="exportExcel()">📊 Excel</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <button class="btn btn-s btn-full" onclick="genBilanPDF()">📄 Télécharger mon bilan PDF</button>
   </div>
   <div style="margin-bottom:12px;">
     <button class="btn btn-p btn-full" onclick="notifyCompletion()">📧 Envoyer mes résultats au formateur</button>
