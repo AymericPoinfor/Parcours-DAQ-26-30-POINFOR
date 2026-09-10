@@ -4197,7 +4197,7 @@ function renderCodesList(){
         (s.email?`<div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.email}</div>`:`<div style="font-size:.7rem;color:var(--muted);font-style:italic;">Pas d'email</div>`)+
         `</div>`+
         `<button class="btn btn-s" style="padding:4px 8px;font-size:.85rem;flex-shrink:0;letter-spacing:.1em;" title="Modifier les tests affectés" onclick="editStagiaireTests('${s.code}')">${testsBadge}</button>`+
-        `<button class="btn btn-s" style="padding:4px 8px;font-size:.75rem;flex-shrink:0;" title="Modifier le profil" onclick="editProfilStagiaire('${s.email}','${(s.prenom||'').replace(/'/g,"\\'")}','${(s.nom||'').replace(/'/g,"\\'")}','${(s.telephone||'').replace(/'/g,"\\'")}','${(s.situation||'').replace(/'/g,"\\'")}')">✏️</button>`+
+        `<button class="btn btn-s" style="padding:4px 8px;font-size:.75rem;flex-shrink:0;" title="Modifier le profil" onclick="editProfilStagiaire('${s.email||''}')">✏️</button>`+
         `<div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--gold);letter-spacing:.1em;flex-shrink:0;">${s.code}</div>`+
         `<div style="font-size:.72rem;color:${hasDone?'var(--ok)':'var(--muted)'};flex-shrink:0;">${hasDone?'✓ En cours':'–'}</div>`+
         `<button class="btn btn-s" style="padding:4px 10px;font-size:.72rem;flex-shrink:0;"${emailAttr} onclick="sendInvitation('${s.prenom}','${s.nom}','${s.code}','${s.email||''}','${s.site||''}')">📧</button>`+
@@ -4928,6 +4928,7 @@ function renderAdminGlobal(data){
     const empN=s.employeurs?.list?.length||0;
     const dot=etape==='metiers'?'#4fe08a':etape==='cognitif'||etape==='competences'||etape==='valeurs'||etape==='riasec'||etape==='qimi'?'#6aacff':etape==='profil'?'#f5c842':etape==='invite'?'rgba(255,200,80,.6)':'rgba(255,255,255,.2)';
     const emailStag=p.email||s.email||s._meta?.email||'';
+    if(emailStag)_spCache[emailStag]={prenom:p.prenom||s.prenom||'',nom:p.nom||s.nom||'',email:emailStag,telephone:p.tel||p.telephone||'',naiss:p.naiss||'',cp:p.cp||'',situation:p.sit||p.situation||'',niveau:p.niveau||'',obj:p.obj||'',site:p.site||s.profil?.site||''};
     const nomStag=((p.prenom||s.prenom||'')+' '+(p.nom||s.nom||'')).trim()||emailStag||'Inconnu';
     return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card-border);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
       <div style="flex:1;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="showAdminStagiaireDetail(this)" data-snap='${JSON.stringify({profil:p,qimi:s.qimi,riasec:s.riasec,valeurs:s.valeurs,competences:s.competences,cognitif:s.cognitif,metiers:s.metiers,employeurs:s.employeurs}).replace(/'/g,"&#39;")}'>
@@ -4938,7 +4939,7 @@ function renderAdminGlobal(data){
           <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${empN>0?empN+' employeur'+(empN>1?'s':''):''}</div>
         </div>
       </div>
-      <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;flex-shrink:0;" title="Modifier le profil" onclick="event.stopPropagation();editProfilStagiaire('${emailStag}','${(p.prenom||nomStag.split(' ')[0]||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}','${(p.nom||nomStag.split(' ').slice(1).join(' ')||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}','${(p.telephone||'').replace(/'/g,"\\'")}','${(p.situation||'').replace(/'/g,"\\'")}')">✏️ Profil</button>
+      <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;flex-shrink:0;" title="Modifier le profil" onclick="event.stopPropagation();editProfilStagiaire('${emailStag}')">✏️ Profil</button>
       <button class="btn btn-s" style="padding:5px 9px;font-size:.7rem;color:#f77a7a;flex-shrink:0;" title="Supprimer ce profil" onclick="event.stopPropagation();confirmDeleteStagiaire('${nomStag}','${emailStag}')">🗑</button>
     </div>`;
   };
@@ -5304,6 +5305,7 @@ async function renderFormateurDashboard(){
   liste.forEach((entry,idx)=>{
     const p=entry.snap?.profil;
     if(!p)return;
+    if(p.email)_spCache[p.email]={prenom:p.prenom||'',nom:p.nom||'',email:p.email,telephone:p.tel||p.telephone||'',naiss:p.naiss||'',cp:p.cp||'',situation:p.sit||p.situation||'',niveau:p.niveau||'',obj:p.obj||'',site:p.site||''};
     const hasQ=!!entry.snap.qimi,hasR=!!entry.snap.riasec,hasM=!!entry.snap.metiers;
     const empN=entry.snap.employeurs?.list?.length||0;
     const chip=(ok,lbl)=>`<span class="fmt-chip" style="background:${ok?'rgba(62,207,142,.2)':'rgba(255,255,255,.06)'};color:${ok?'var(--ok)':'var(--muted)'}">${lbl} ${ok?'✓':'—'}</span>`;
@@ -5324,7 +5326,7 @@ async function renderFormateurDashboard(){
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;" onclick="event.stopPropagation()">
           <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="showStagiaireDetail(${idx})">👁 Détail</button>
-          <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="editProfilStagiaire('${p.email}','${(p.prenom||'').replace(/'/g,"\\'")}','${(p.nom||'').replace(/'/g,"\\'")}','${(p.telephone||'').replace(/'/g,"\\'")}','${(p.situation||'').replace(/'/g,"\\'")}')">✏️ Profil</button>
+          <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="editProfilStagiaire('${p.email}')">✏️ Profil</button>
           ${(hasQ||hasR)?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genBilanPDFFromSnap(${idx})">📄 Bilan</button>`:''}
           ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">📋 Plan</button>`:''}
           <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="confirmDeleteStagiaire('${p.prenom} ${p.nom}','${p.email}')">🗑 Supprimer</button>
@@ -5336,56 +5338,76 @@ async function renderFormateurDashboard(){
 }
 
 let _deletePending=null;
+let _spCache={}; // cache profils stagiaires pour édition
 
-async function editProfilStagiaire(email,prenom,nom,telephone,situation){
+async function editProfilStagiaire(email){
+  const c=_spCache[email]||{};
   let modal=document.getElementById('edit-profil-modal');
-  if(!modal){
-    modal=document.createElement('div');
-    modal.id='edit-profil-modal';
-    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
-    modal.innerHTML=`<div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:28px;max-width:420px;width:94vw;">
-      <div style="font-size:1.05rem;font-weight:800;margin-bottom:18px;">✏️ Modifier le profil</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
+  if(modal)modal.remove();
+  modal=document.createElement('div');
+  modal.id='edit-profil-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:20px;';
+  modal.innerHTML=`<div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:28px;max-width:500px;width:94vw;max-height:92vh;overflow-y:auto;">
+    <div style="font-size:1.05rem;font-weight:800;margin-bottom:18px;">✏️ Modifier le profil</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <input id="ep-prenom" class="ef-inp" placeholder="Prénom *">
         <input id="ep-nom" class="ef-inp" placeholder="Nom *">
-        <input id="ep-email" class="ef-inp" type="email" placeholder="Email *">
-        <input id="ep-tel" class="ef-inp" placeholder="Téléphone">
-        <input id="ep-situation" class="ef-inp" placeholder="Situation (ex: demandeur d'emploi)">
       </div>
-      <div id="ep-err" style="color:#f77a7a;font-size:.8rem;margin-top:8px;display:none;"></div>
-      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
-        <button class="btn btn-s" onclick="document.getElementById('edit-profil-modal').remove()">Annuler</button>
-        <button class="btn btn-p" id="ep-save">Enregistrer</button>
+      <input id="ep-email" class="ef-inp" type="email" placeholder="Email *">
+      <input id="ep-tel" class="ef-inp" type="tel" placeholder="Téléphone">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Date de naissance</label><input id="ep-naiss" class="ef-inp" type="date"></div>
+        <input id="ep-cp" class="ef-inp" placeholder="Code postal">
       </div>
-    </div>`;
-    document.body.appendChild(modal);
-  }
-  document.getElementById('ep-prenom').value=prenom||'';
-  document.getElementById('ep-nom').value=nom||'';
-  document.getElementById('ep-email').value=email||'';
-  document.getElementById('ep-tel').value=telephone||'';
-  document.getElementById('ep-situation').value=situation||'';
-  document.getElementById('ep-err').style.display='none';
+      <input id="ep-situation" class="ef-inp" placeholder="Situation (ex: demandeur d'emploi)">
+      <input id="ep-niveau" class="ef-inp" placeholder="Niveau d'études (ex: Bac, BTS…)">
+      <input id="ep-obj" class="ef-inp" placeholder="Objectif professionnel">
+      <input id="ep-site" class="ef-inp" placeholder="Lieu de formation (ex: Gray)">
+    </div>
+    <div id="ep-err" style="color:#f77a7a;font-size:.8rem;margin-top:8px;display:none;"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+      <button class="btn btn-s" onclick="document.getElementById('edit-profil-modal').remove()">Annuler</button>
+      <button class="btn btn-p" id="ep-save">Enregistrer</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('ep-prenom').value=c.prenom||'';
+  document.getElementById('ep-nom').value=c.nom||'';
+  document.getElementById('ep-email').value=c.email||email||'';
+  document.getElementById('ep-tel').value=c.telephone||'';
+  document.getElementById('ep-naiss').value=c.naiss||'';
+  document.getElementById('ep-cp').value=c.cp||'';
+  document.getElementById('ep-situation').value=c.situation||'';
+  document.getElementById('ep-niveau').value=c.niveau||'';
+  document.getElementById('ep-obj').value=c.obj||'';
+  document.getElementById('ep-site').value=c.site||'';
+  const errDiv=document.getElementById('ep-err');
   const saveBtn=document.getElementById('ep-save');
   saveBtn.onclick=async()=>{
-    const p=document.getElementById('ep-prenom').value.trim();
-    const n=document.getElementById('ep-nom').value.trim();
+    const prn=document.getElementById('ep-prenom').value.trim();
+    const nm=document.getElementById('ep-nom').value.trim();
     const em=document.getElementById('ep-email').value.trim();
-    const t=document.getElementById('ep-tel').value.trim();
-    const s=document.getElementById('ep-situation').value.trim();
+    const tel=document.getElementById('ep-tel').value.trim();
+    const naiss=document.getElementById('ep-naiss').value;
+    const cp=document.getElementById('ep-cp').value.trim();
+    const sit=document.getElementById('ep-situation').value.trim();
+    const niv=document.getElementById('ep-niveau').value.trim();
+    const obj=document.getElementById('ep-obj').value.trim();
+    const site=document.getElementById('ep-site').value.trim();
     const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if(!p||!n){document.getElementById('ep-err').textContent='Prénom et nom obligatoires.';document.getElementById('ep-err').style.display='block';return;}
-    if(!em||!emailRe.test(em)){document.getElementById('ep-err').textContent='Email invalide.';document.getElementById('ep-err').style.display='block';return;}
+    if(!prn||!nm){errDiv.textContent='Prénom et nom obligatoires.';errDiv.style.display='block';return;}
+    if(!em||!emailRe.test(em)){errDiv.textContent='Email invalide.';errDiv.style.display='block';return;}
     saveBtn.disabled=true;saveBtn.textContent='Enregistrement…';
     const headers={'Content-Type':'application/json'};
     if(_adminPin)headers['X-Admin-Pin']=_adminPin;
     else if(_fmtPin)headers['X-Pin']=_fmtPin;
     try{
-      const r=await fetch(API_URL,{method:'POST',headers,body:JSON.stringify({action:'update_stagiaire_profil',email,new_email:em,prenom:p,nom:n,telephone:t,situation:s})});
+      const r=await fetch(API_URL,{method:'POST',headers,body:JSON.stringify({action:'update_stagiaire_profil',email,new_email:em,prenom:prn,nom:nm,telephone:tel,naiss,cp,situation:sit,niveau:niv,obj,site})});
       const d=await r.json();
       if(d.ok){toast('Profil mis à jour','ok');modal.remove();if(typeof refreshAdminPanel==='function')refreshAdminPanel();if(typeof renderFormateurDashboard==='function')renderFormateurDashboard();}
-      else{document.getElementById('ep-err').textContent=d.error||'Erreur';document.getElementById('ep-err').style.display='block';saveBtn.disabled=false;saveBtn.textContent='Enregistrer';}
-    }catch(e){document.getElementById('ep-err').textContent='Erreur réseau';document.getElementById('ep-err').style.display='block';saveBtn.disabled=false;saveBtn.textContent='Enregistrer';}
+      else{errDiv.textContent=d.error||'Erreur';errDiv.style.display='block';saveBtn.disabled=false;saveBtn.textContent='Enregistrer';}
+    }catch(e){errDiv.textContent='Erreur réseau';errDiv.style.display='block';saveBtn.disabled=false;saveBtn.textContent='Enregistrer';}
   };
 }
 
