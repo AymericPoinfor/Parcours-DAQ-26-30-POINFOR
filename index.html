@@ -1065,8 +1065,8 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
     <button class="btn btn-s" style="flex:1;" onclick="genBilanPDF()">📄 Bilan complet</button>
     <button class="btn btn-s" style="flex:1;" onclick="go('scr-metiers-result');setpg(100);setStep('Parcours complet ✓');setTitle('Mes métiers');setCounter('')">← Retour</button>
   </div>
-  <div id="mailto-btn-wrap" style="display:none;margin-bottom:12px;">
-    <button class="btn btn-p btn-full" onclick="sendMailToFormateur()">📧 Envoyer mes résultats au formateur</button>
+  <div style="margin-bottom:12px;">
+    <button class="btn btn-p btn-full" onclick="notifyCompletion()">📧 Envoyer mes résultats au formateur</button>
   </div>
 
   <!-- Filtres -->
@@ -1464,11 +1464,17 @@ canvas#sf{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
       </select>
       <input id="adm-formation" class="ef-inp" style="flex:2;min-width:200px;" placeholder="Nom de la formation (ex: DAQ 2026)">
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
       <input id="adm-email" class="ef-inp" type="email" style="flex:1;" placeholder="Email du formateur *">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <input id="adm-referent-nom" class="ef-inp" style="flex:1;min-width:160px;" placeholder="Nom du référent de formation">
+      <input id="adm-referent-email" class="ef-inp" type="email" style="flex:1;min-width:180px;" placeholder="Email du référent">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-p" style="padding:8px 18px;white-space:nowrap;" onclick="createFormateur()">Créer &amp; inviter</button>
     </div>
-    <div style="font-size:.75rem;color:var(--muted);margin-top:8px;">Code formateur généré automatiquement · Email d'invitation envoyé · Accès référent ajouteable depuis la liste.</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:8px;">Code formateur généré automatiquement · Email d'invitation envoyé · Le référent recevra une copie des résultats des stagiaires.</div>
   </div>
 
   <!-- Liste des formateurs -->
@@ -4055,6 +4061,7 @@ function applyLoginSession(email,code,d){
   localStorage.setItem('parcours_active_code',code);
   if(d.prenom)sessionStorage.setItem('stagiaire_nom',(d.prenom||'')+' '+(d.nom||''));
   const snap=d.data||{};
+  if(snap.formateur_email)sessionStorage.setItem('stagiaire_formateur_email',snap.formateur_email);
   const map={profil:'parcours_profil',qimi:'parcours_qimi',riasec:'parcours_riasec',valeurs:'parcours_valeurs',competences:'parcours_competences',cognitif:'parcours_cognitif',mobilite:'parcours_mobilite',freins:'parcours_freins',metiers:'parcours_metiers',employeurs:'parcours_employeurs'};
   const serverHasProgress=snap.profil||snap.qimi||snap.riasec||snap.valeurs||snap.competences||snap.cognitif||snap.metiers;
   if(serverHasProgress){
@@ -4947,6 +4954,8 @@ async function createFormateur(){
   const email=document.getElementById('adm-email').value.trim();
   const site=document.getElementById('adm-site').value.trim();
   const formation=document.getElementById('adm-formation').value.trim();
+  const referentNom=document.getElementById('adm-referent-nom').value.trim();
+  const referentEmail=document.getElementById('adm-referent-email').value.trim();
   if(!prenom||!nom){toast('Prénom et nom requis','err');return;}
   if(!email){toast('Email requis','err');return;}
   if(!site){toast('Sélectionnez un site POINFOR','err');return;}
@@ -4955,7 +4964,7 @@ async function createFormateur(){
   try{
     const r=await fetch(API_URL,{method:'POST',
       headers:{'Content-Type':'application/json','X-Admin-Pin':_adminPin},
-      body:JSON.stringify({action:'create_formateur',prenom,nom,email,site,formation,url})});
+      body:JSON.stringify({action:'create_formateur',prenom,nom,email,site,formation,referent_nom:referentNom,referent_email:referentEmail,url})});
     const d=await r.json();
     if(d.ok){
       document.getElementById('adm-prenom').value='';
@@ -4963,6 +4972,8 @@ async function createFormateur(){
       document.getElementById('adm-email').value='';
       document.getElementById('adm-site').value='';
       document.getElementById('adm-formation').value='';
+      document.getElementById('adm-referent-nom').value='';
+      document.getElementById('adm-referent-email').value='';
       await refreshAdminPanel();
       // Modal avec le lien de setup (au cas où l'email n'arrive pas)
       const box=_adminModal('fmt-created-modal');
@@ -5196,6 +5207,20 @@ function sendMailToFormateur(){
   const mailto='mailto:'+encodeURIComponent(fmtEmail)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   window.location.href=mailto;
   toast('Ouverture de votre client mail…','ok');
+}
+
+async function notifyCompletion(){
+  const profil=JSON.parse(localStorage.getItem('parcours_profil')||sessionStorage.getItem('parcours_profil')||'null');
+  if(!profil){toast('Profil introuvable','err');return;}
+  const fmtEmail=localStorage.getItem('parcours_formateur')||profil.formateur_email||sessionStorage.getItem('stagiaire_formateur_email')||'';
+  if(!fmtEmail){toast('Aucun formateur associé à votre compte','err');return;}
+  try{
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'notify_completion',email:profil.email||'',prenom:profil.prenom||'',nom:profil.nom||'',formateur_email:fmtEmail,url:window.location.href.split('?')[0]})});
+    const d=await r.json();
+    if(d.ok){toast('Résultats envoyés à votre formateur'+(d.referent_sent?(' et au référent'):''),'ok');}
+    else toast('Erreur : '+(d.error||'inconnue'),'err');
+  }catch(e){toast('Erreur réseau','err');}
 }
 
 function refreshMailtoBtn(){
