@@ -5706,7 +5706,7 @@ function showStagiaireDetail(idx){
       <!-- Body -->
       <div style="padding:24px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
-          <div>${sec('Centres d\'intérêt','🎯',qimiHtml)}</div>
+          <div>${sec('Centres d\'intérêt'+(qd?.scores?(' — '+QKEYS.reduce((s,k)=>s+(qd.scores[k]||0),0)+'/'+(QKEYS.length*50)):''),'🎯',qimiHtml)}</div>
           <div>${sec('Personnalité RIASEC','🔬',riasecHtml)}</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
