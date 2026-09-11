@@ -3603,15 +3603,19 @@ function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid){
       }).join('')+`</table>`;
   }else{document.getElementById('pbc-sec-emps').style.display='none';}
   // Diagnostics Mobilité / Freins (version print, couleurs claires)
-  const diagPrint=(dd)=>{
+  const diagPrint=(dd,inverse=false)=>{
     if(!dd||dd.pct==null)return'';
-    const col=dd.pct>=75?'#2e7d32':dd.pct>=50?'#1565c0':dd.pct>=30?'#e65100':'#aaa';
-    const lbl=dd.pct>=75?'Élevé':dd.pct>=50?'Moyen':dd.pct>=30?'Faible':'Très faible';
+    const stdCol=(p)=>p>=75?'#2e7d32':p>=50?'#1565c0':p>=30?'#e65100':'#aaa';
+    const invCol=(p)=>p<=30?'#c62828':p<=55?'#e65100':'#2e7d32';
+    const colorFn=inverse?invCol:stdCol;
+    const stdLbl=(p)=>p>=75?'Élevé':p>=50?'Moyen':p>=30?'Faible':'Très faible';
+    const invLbl=(p)=>p<=30?'Frein fort':p<=55?'Modéré':'Peu présent';
+    const lblFn=inverse?invLbl:stdLbl;
+    const col=colorFn(dd.pct), lbl=lblFn(dd.pct);
     const det=dd.detail||{};
     const rows=Object.keys(det).map(k=>{
       const c=det[k]||{},pp=c.pct!=null?c.pct:Math.round(((c.score||0)/(c.max||1))*100),nom=c.nom||k;
-      const cc=pp>=75?'#2e7d32':pp>=50?'#1565c0':pp>=30?'#e65100':'#aaa';
-      const ll=pp>=75?'Élevé':pp>=50?'Moyen':pp>=30?'Faible':'—';
+      const cc=colorFn(pp), ll=lblFn(pp);
       return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">`+
         `<span style="font-size:8pt;font-weight:700;flex:1;">${nom}</span>`+
         `<span style="width:60px;height:8px;background:#e8ecf5;border-radius:4px;overflow:hidden;display:inline-block;"><span style="display:block;height:100%;width:${pp}%;background:${cc};border-radius:4px;"></span></span>`+
@@ -3623,7 +3627,7 @@ function fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid){
       `<span style="font-size:7pt;color:${col};background:${col}18;border-radius:3px;padding:2px 7px;font-weight:700;">${lbl}</span></div>${rows}`;
   };
   const mobEl=document.getElementById('pbc-mobilite');if(mobEl)mobEl.innerHTML=diagPrint(mobd);
-  const freEl=document.getElementById('pbc-freins');if(freEl)freEl.innerHTML=diagPrint(freid);
+  const freEl=document.getElementById('pbc-freins');if(freEl)freEl.innerHTML=diagPrint(freid,true);
   const secDiags=document.getElementById('pbc-sec-diags');
   if(secDiags&&!mobd&&!freid)secDiags.style.display='none';
   else if(secDiags)secDiags.style.display='';
@@ -5497,19 +5501,27 @@ function rankedHtmlScreen(data,CAT,KEYS,max){
   }).join('');
 }
 // Rendu générique d'un résultat de diagnostic embarqué (Mobilité / Freins) : {pct, detail:{cat:{score,max,pct,nom?}}}
-function diagResultHtml(dd){
+// inverse=true : score faible = frein fort (rouge), score élevé = frein absent (vert)
+function diagResultHtml(dd,inverse=false){
   if(!dd||dd.pct==null)return'<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
-  const pct=dd.pct, col=pct>=60?'#4fe08a':pct>=40?'#f5c842':'#f77a7a';
+  const freinsCol=(p)=>p<=30?'#f77a7a':p<=55?'#f5c842':'#4fe08a';
+  const stdCol=(p)=>p>=60?'#4fe08a':p>=40?'#f5c842':'#f77a7a';
+  const colorFn=inverse?freinsCol:stdCol;
+  const freinsLbl=(p)=>p<=30?'Frein fort':p<=55?'Modéré':'Peu présent';
+  const pct=dd.pct, col=colorFn(pct);
+  const lblGlobal=inverse?freinsLbl(pct):'';
   const det=dd.detail||{};
   const rows=Object.keys(det).map(k=>{
     const c=det[k]||{}, p=c.pct!=null?c.pct:Math.round(((c.score||0)/(c.max||1))*100), nom=c.nom||k;
-    const cc=p>=60?'#4fe08a':p>=40?'#f5c842':'#f77a7a';
+    const cc=colorFn(p);
+    const lbl=inverse?`<span style="font-size:.68rem;color:${cc};background:${cc}22;border-radius:3px;padding:1px 5px;font-weight:700;">${freinsLbl(p)}</span>`:'';
     return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <span style="font-size:.8rem;font-weight:700;flex:1;">${nom}</span>
       <div style="width:90px;height:7px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${p}%;background:${cc};"></div></div>
-      <span style="font-size:.76rem;font-weight:800;color:${cc};width:34px;text-align:right;">${p}%</span></div>`;
+      <span style="font-size:.76rem;font-weight:800;color:${cc};width:34px;text-align:right;">${p}%</span>${lbl}</div>`;
   }).join('');
-  return`<div style="font-size:1.4rem;font-weight:900;color:${col};margin-bottom:8px;">${pct}%<span style="font-size:.7rem;color:var(--muted);font-weight:600;"> global</span></div>${rows}`;
+  const globalLblHtml=inverse?`<span style="font-size:.75rem;color:${col};background:${col}22;border-radius:4px;padding:2px 8px;font-weight:700;margin-left:8px;">${lblGlobal}</span>`:'';
+  return`<div style="display:flex;align-items:center;gap:0;margin-bottom:8px;"><span style="font-size:1.4rem;font-weight:900;color:${col};">${pct}%</span><span style="font-size:.7rem;color:var(--muted);font-weight:600;margin-left:4px;"> global</span>${globalLblHtml}</div>${rows}`;
 }
 function showStagiaireDetail(idx){
   const liste=JSON.parse(localStorage.getItem('profils_liste')||'[]');
@@ -5578,7 +5590,7 @@ function showStagiaireDetail(idx){
   // ── Diagnostics embarqués (Mobilité / Freins) ──
   const mobd=snap?.mobilite, freid=snap?.freins;
   const mobiliteHtml=diagResultHtml(mobd);
-  const freinsHtml=diagResultHtml(freid);
+  const freinsHtml=diagResultHtml(freid,true);
 
   // ── Métiers ──
   let metiersHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
