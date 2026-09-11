@@ -5307,6 +5307,7 @@ async function renderFormateurDashboard(){
     if(!p)return;
     if(p.email)_spCache[p.email]={prenom:p.prenom||'',nom:p.nom||'',email:p.email,telephone:p.tel||p.telephone||'',naiss:p.naiss||'',cp:p.cp||'',situation:p.sit||p.situation||'',niveau:p.niveau||'',obj:p.obj||'',site:p.site||''};
     const hasQ=!!entry.snap.qimi,hasR=!!entry.snap.riasec,hasM=!!entry.snap.metiers;
+    const hasAny=!!(entry.snap.qimi||entry.snap.riasec||entry.snap.valeurs||entry.snap.competences||entry.snap.cognitif||entry.snap.metiers);
     const empN=entry.snap.employeurs?.list?.length||0;
     const chip=(ok,lbl)=>`<span class="fmt-chip" style="background:${ok?'rgba(62,207,142,.2)':'rgba(255,255,255,.06)'};color:${ok?'var(--ok)':'var(--muted)'}">${lbl} ${ok?'✓':'—'}</span>`;
     const card=document.createElement('div');card.className='fmt-card';
@@ -5327,7 +5328,7 @@ async function renderFormateurDashboard(){
         <div style="display:flex;gap:6px;flex-wrap:wrap;" onclick="event.stopPropagation()">
           <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="showStagiaireDetail(${idx})">👁 Détail</button>
           <button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="editProfilStagiaire('${p.email}')">✏️ Profil</button>
-          ${(hasQ||hasR)?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genBilanPDFFromSnap(${idx})">📄 Bilan</button>`:''}
+          ${hasAny?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genBilanPDFFromSnap(${idx})">📄 Bilan</button>`:''}
           ${empN>0?`<button class="btn btn-s" style="padding:6px 12px;font-size:.76rem;" onclick="genPlanPDFFromSnap(${idx})">📋 Plan</button>`:''}
           <button class="btn btn-s" style="padding:6px 10px;font-size:.76rem;color:#f77a7a;" onclick="confirmDeleteStagiaire('${p.prenom} ${p.nom}','${p.email}')">🗑 Supprimer</button>
         </div>
