@@ -5759,7 +5759,10 @@ function genBilanPDFFromSnap(idx){
   const mobd=snap?.mobilite,freid=snap?.freins;
   if(!qd&&!rd&&!vd&&!cd&&!gd&&!mobd&&!freid){toast('Aucun résultat de test disponible','err');return;}
   fillBilanPDF(p,qd,rd,vd,cd,gd,md,empList,mobd,freid);
-  toast('Bilan PDF généré !','ok');
+  const fn='BilanComplet_'+(p.prenom||'Stagiaire')+'_'+(p.nom||'')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
+  captureAndSave(document.getElementById('print-bilan-complet'),fn)
+    .then(()=>toast('Bilan PDF enregistré !','ok'))
+    .catch(()=>toast('Erreur génération PDF','err'));
 }
 
 function openPlanWindowFromSnap(idx){
