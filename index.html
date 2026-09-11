@@ -5545,18 +5545,9 @@ function showStagiaireDetail(idx){
   // ── QIMI ──
   let qimiHtml='<div style="color:var(--muted);font-size:.8rem;font-style:italic;">Non complété</div>';
   if(qd?.scores){
-    const total=QKEYS.reduce((s,k)=>s+(qd.scores[k]||0),0);
-    const totalMax=QKEYS.length*50;
-    const totalPct=Math.round((total/totalMax)*100);
-    const tcol=totalPct>=60?'#4fe08a':totalPct>=40?'#f5c842':'#f77a7a';
-    const scoreGlobal=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.1);">
-      <span style="font-size:1.3rem;font-weight:900;color:${tcol};">${total}<span style="font-size:.7rem;color:var(--muted);font-weight:600;">/${totalMax}</span></span>
-      <div style="flex:1;height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${totalPct}%;background:${tcol};border-radius:4px;"></div></div>
-      <span style="font-size:.8rem;font-weight:800;color:${tcol};">${totalPct}%</span>
-    </div>`;
     const sorted=QKEYS.slice().sort((a,b)=>qd.scores[b]-qd.scores[a]).slice(0,5);
     const medals=['🥇','🥈','🥉','4.','5.'];
-    qimiHtml=scoreGlobal+sorted.map((k,i)=>{
+    qimiHtml=sorted.map((k,i)=>{
       const c=QCAT[k];const pct=Math.round((qd.scores[k]/50)*100);
       return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <span style="width:20px;text-align:center;">${medals[i]}</span>
