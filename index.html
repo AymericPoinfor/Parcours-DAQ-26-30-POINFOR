@@ -3806,6 +3806,8 @@ function goStagiaireDashboard(){
   renderStagiaireDashboard();
   go('scr-stagiaire-dashboard');
   setpg(0);setStep('');setTitle('Mon parcours');setCounter('');
+  // Resync silencieux : si un test a été fait hors ligne, on renvoie au serveur
+  try{saveToProfilsList();}catch(e){}
 }
 
 function renderStagiaireDashboard(){
